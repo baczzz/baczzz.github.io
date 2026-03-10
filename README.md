@@ -1,2 +1,2 @@
 # Photobooth-k17
-photobooth web cho mọi người
+# photobooth web cho mọi người
