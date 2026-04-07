@@ -1,0 +1,1551 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Biệt Đội Giữ Lửa 🔥</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+
+<!-- ══════════════════════════════════════════════════════════
+     FIREBASE CONFIG — THAY THẾ BẰNG CONFIG CỦA BẠN
+     1. Vào https://console.firebase.google.com → Tạo project
+     2. Project Settings → Add Web App → Copy config
+     3. Bật Firestore, Storage, Cloud Messaging trong Console
+     ══════════════════════════════════════════════════════════ -->
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-storage-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js"></script>
+
+<script>
+// ⚠️ THAY THẾ TOÀN BỘ OBJECT NÀY bằng config Firebase của bạn
+const FIREBASE_CONFIG = {
+  apiKey: "YOUR_API_KEY",
+  authDomain: "YOUR_PROJECT.firebaseapp.com",
+  projectId: "YOUR_PROJECT_ID",
+  storageBucket: "YOUR_PROJECT.appspot.com",
+  messagingSenderId: "YOUR_SENDER_ID",
+  appId: "YOUR_APP_ID"
+};
+// VAPID key từ Firebase Console → Cloud Messaging → Web Push certificates
+const VAPID_KEY = "YOUR_VAPID_KEY_HERE";
+</script>
+
+<style>
+:root {
+  --fire: #FF4500;
+  --fire-dim: #FF6B35;
+  --ember: #FFC300;
+  --ash: #1A1A1A;
+  --char: #0D0D0D;
+  --smoke: #2A2A2A;
+  --text: #F5F0E8;
+  --text-dim: #8A8070;
+  --green: #39FF14;
+  --red: #FF1744;
+  --sleep-blue: #1A2744;
+  --sleep-accent: #4A7BFF;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+html, body {
+  width: 100%; height: 100%;
+  background: var(--char);
+  color: var(--text);
+  font-family: 'IBM Plex Mono', monospace;
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ===== APP CONTAINER ===== */
+#app { width: 100%; height: 100%; position: relative; display: flex; flex-direction: column; }
+
+/* ===== CAMERA LAYER ===== */
+#camera-layer { position: absolute; inset: 0; background: var(--char); overflow: hidden; }
+#video-feed {
+  width: 100%; height: 100%; object-fit: cover;
+  transform: scaleX(-1); opacity: 0; transition: opacity 0.5s;
+}
+#video-feed.active { opacity: 1; }
+#camera-bg { position: absolute; inset: 0; background: radial-gradient(ellipse at 30% 40%, #1a1a2e 0%, #0a0a0a 70%); }
+
+/* Scan lines */
+#camera-layer::after {
+  content: ''; position: absolute; inset: 0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 3px, rgba(0,0,0,0.08) 3px, rgba(0,0,0,0.08) 4px);
+  pointer-events: none; z-index: 2;
+}
+
+/* Viewfinder corners */
+#viewfinder { position: absolute; inset: 0; pointer-events: none; z-index: 3; }
+.vf-corner { position: absolute; width: 28px; height: 28px; border-color: rgba(255,255,255,0.6); border-style: solid; }
+.vf-corner.tl { top: 72px; left: 16px; border-width: 2px 0 0 2px; }
+.vf-corner.tr { top: 72px; right: 16px; border-width: 2px 2px 0 0; }
+.vf-corner.bl { bottom: 220px; left: 16px; border-width: 0 0 2px 2px; }
+.vf-corner.br { bottom: 220px; right: 16px; border-width: 0 2px 2px 0; }
+.vf-grid {
+  position: absolute; inset: 72px 16px 220px;
+  background-image: linear-gradient(rgba(255,255,255,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.06) 1px, transparent 1px);
+  background-size: 33.33% 33.33%;
+}
+.vf-focus { position: absolute; top: 50%; left: 50%; transform: translate(-50%, calc(-50% + -70px)); width: 40px; height: 40px; }
+.vf-focus::before, .vf-focus::after { content: ''; position: absolute; background: rgba(255,255,255,0.5); }
+.vf-focus::before { top: 50%; left: 0; right: 0; height: 1px; transform: translateY(-50%); }
+.vf-focus::after { left: 50%; top: 0; bottom: 0; width: 1px; transform: translateX(-50%); }
+
+/* ===== TOP HUD ===== */
+#top-hud {
+  position: relative; z-index: 10;
+  display: flex; justify-content: space-between; align-items: center;
+  padding: 14px 16px 10px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.7) 0%, transparent 100%);
+}
+#fire-count { display: flex; align-items: center; gap: 6px; }
+.fire-emoji { font-size: 22px; animation: flicker 1.5s ease-in-out infinite alternate; }
+@keyframes flicker {
+  0% { transform: scale(1) rotate(-2deg); filter: brightness(1); }
+  50% { transform: scale(1.08) rotate(1deg); filter: brightness(1.2); }
+  100% { transform: scale(0.95) rotate(-1deg); filter: brightness(0.9); }
+}
+.fire-number { font-family: 'Bebas Neue', sans-serif; font-size: 32px; color: var(--ember); line-height: 1; text-shadow: 0 0 20px rgba(255,195,0,0.6); }
+.fire-label { font-size: 10px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; margin-top: 2px; }
+#top-right { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+#live-time { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; }
+#mode-badge {
+  font-size: 9px; letter-spacing: 2px; padding: 3px 8px; border-radius: 2px;
+  text-transform: uppercase; font-weight: 600;
+  background: rgba(255,69,0,0.2); border: 1px solid var(--fire); color: var(--fire);
+  transition: all 0.5s;
+}
+#mode-badge.sleep { background: rgba(74,123,255,0.15); border-color: var(--sleep-accent); color: var(--sleep-accent); }
+
+/* Room badge */
+#room-badge {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%);
+  z-index: 11; font-size: 9px; letter-spacing: 2px;
+  color: var(--text-dim); text-transform: uppercase;
+  cursor: pointer;
+}
+#room-badge span { color: var(--ember); }
+
+/* ===== COUNTDOWN RING ===== */
+#countdown-area {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, calc(-50% + -20px));
+  z-index: 5; display: flex; flex-direction: column; align-items: center; gap: 6px;
+  pointer-events: none;
+}
+#countdown-ring-wrap { position: relative; width: 110px; height: 110px; }
+#countdown-svg { width: 110px; height: 110px; transform: rotate(-90deg); }
+#ring-bg { fill: none; stroke: rgba(255,255,255,0.08); stroke-width: 3; }
+#ring-progress {
+  fill: none; stroke: var(--fire); stroke-width: 3; stroke-linecap: round;
+  stroke-dasharray: 298; stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.5s;
+  filter: drop-shadow(0 0 6px var(--fire));
+}
+#ring-progress.urgent { stroke: var(--red); filter: drop-shadow(0 0 8px var(--red)); }
+#ring-progress.sleep-mode { stroke: var(--sleep-accent); filter: drop-shadow(0 0 6px var(--sleep-accent)); }
+#countdown-inner {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0;
+}
+#countdown-time { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 2px; color: var(--text); line-height: 1; }
+#countdown-sub { font-size: 8px; color: var(--text-dim); letter-spacing: 1.5px; text-transform: uppercase; }
+#countdown-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; }
+@keyframes urgentPulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.3; } }
+.urgent-pulse { animation: urgentPulse 0.8s ease-in-out infinite; }
+
+/* ===== SLEEP OVERLAY ===== */
+#sleep-overlay {
+  position: absolute; inset: 0; z-index: 8;
+  background: linear-gradient(160deg, #0a0f1e 0%, #111827 100%);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  opacity: 0; pointer-events: none; transition: opacity 0.8s;
+}
+#sleep-overlay.active { opacity: 1; pointer-events: all; }
+.sleep-moon { font-size: 48px; animation: moonGlow 3s ease-in-out infinite alternate; }
+@keyframes moonGlow {
+  from { filter: brightness(0.8) drop-shadow(0 0 8px #4A7BFF); }
+  to { filter: brightness(1.1) drop-shadow(0 0 20px #4A7BFF); }
+}
+.sleep-title { font-family: 'Bebas Neue', sans-serif; font-size: 36px; letter-spacing: 4px; color: var(--sleep-accent); text-align: center; }
+.sleep-desc { font-size: 11px; color: rgba(255,255,255,0.4); letter-spacing: 1px; text-align: center; line-height: 1.8; }
+.sleep-resume { margin-top: 8px; font-size: 12px; color: var(--sleep-accent); letter-spacing: 2px; padding: 10px 24px; border: 1px solid rgba(74,123,255,0.4); border-radius: 4px; }
+.star { position: absolute; width: 2px; height: 2px; border-radius: 50%; background: white; animation: twinkle var(--dur, 2s) ease-in-out infinite alternate; }
+@keyframes twinkle { from { opacity: 0.1; transform: scale(0.8); } to { opacity: 0.8; transform: scale(1.2); } }
+
+/* ===== BOTTOM PANEL ===== */
+#bottom-panel {
+  position: absolute; bottom: 0; left: 0; right: 0; z-index: 10;
+  background: linear-gradient(to top, rgba(0,0,0,0.92) 60%, transparent 100%);
+  padding: 0 12px 28px;
+}
+
+/* Member grid */
+#member-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.member-card {
+  position: relative; aspect-ratio: 1; border-radius: 6px; overflow: hidden;
+  background: var(--smoke); border: 1.5px solid rgba(255,255,255,0.08);
+  cursor: pointer; transition: transform 0.15s, border-color 0.3s;
+}
+.member-card:active { transform: scale(0.95); }
+.member-card.done { border-color: var(--green); }
+.member-card.done::after { content: '✓'; position: absolute; top: 4px; right: 5px; font-size: 10px; color: var(--green); font-weight: 700; }
+.member-card.missed { border-color: var(--red); }
+.member-card.me { border-color: var(--ember); box-shadow: 0 0 10px rgba(255,195,0,0.3); }
+.member-card.me::before {
+  content: 'BẠN'; position: absolute; bottom: 0; left: 0; right: 0;
+  background: rgba(255,195,0,0.85); color: #000;
+  font-size: 8px; font-weight: 700; letter-spacing: 1px; text-align: center; padding: 2px 0; z-index: 2;
+}
+
+/* Member photo — shows actual captured image */
+.member-photo { width: 100%; height: 100%; object-fit: cover; }
+.member-photo-overlay {
+  position: absolute; inset: 0; background: rgba(0,0,0,0);
+  display: flex; align-items: center; justify-content: center;
+  transition: background 0.3s;
+}
+
+.member-placeholder { width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; }
+.member-avatar { font-size: 20px; line-height: 1; }
+.member-name { font-size: 8px; color: var(--text-dim); letter-spacing: 0.5px; text-align: center; }
+
+/* Waiting pulse */
+.waiting-ring {
+  position: absolute; inset: -3px; border-radius: 8px;
+  border: 2px solid rgba(255,195,0,0.4); animation: waitRing 2s ease-in-out infinite;
+}
+@keyframes waitRing {
+  0%, 100% { opacity: 0.2; transform: scale(0.97); }
+  50% { opacity: 0.8; transform: scale(1.02); }
+}
+
+/* Upload progress bar on member card */
+.upload-bar {
+  position: absolute; bottom: 0; left: 0; height: 2px;
+  background: var(--ember); transition: width 0.2s; width: 0%;
+}
+
+/* ===== CONTROLS ROW ===== */
+#controls-row { display: flex; align-items: center; justify-content: space-between; padding: 0 4px; }
+.ctrl-btn {
+  width: 44px; height: 44px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.12);
+  display: flex; align-items: center; justify-content: center;
+  cursor: pointer; font-size: 18px; transition: all 0.15s; position: relative;
+}
+.ctrl-btn:active { transform: scale(0.9); background: rgba(255,255,255,0.15); }
+.ctrl-btn.active { background: rgba(255,255,255,0.2); border-color: var(--ember); }
+.ctrl-btn.flash-on { background: rgba(255,195,0,0.25); border-color: var(--ember); }
+
+#shutter-btn {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: var(--text); border: 4px solid rgba(255,255,255,0.3);
+  cursor: pointer; position: relative; transition: all 0.12s; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+}
+#shutter-btn:active { transform: scale(0.9); }
+#shutter-btn::before { content: ''; width: 54px; height: 54px; border-radius: 50%; background: white; position: absolute; }
+#shutter-btn.fire-mode::before { background: var(--fire); }
+#shutter-btn.fire-mode { border-color: var(--fire); box-shadow: 0 0 20px rgba(255,69,0,0.5); }
+#shutter-fire-ring {
+  position: absolute; inset: -8px; border-radius: 50%;
+  border: 2px solid var(--fire); opacity: 0;
+  animation: shutterRing 2.5s ease-in-out infinite;
+}
+@keyframes shutterRing {
+  0% { opacity: 0; transform: scale(0.9); }
+  30% { opacity: 0.6; }
+  100% { opacity: 0; transform: scale(1.3); }
+}
+
+#points-btn { font-size: 11px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 0.5px; color: var(--ember); flex-direction: column; gap: 1px; }
+#points-btn span { font-size: 8px; color: var(--text-dim); }
+
+/* ===== FLASH EFFECT ===== */
+#flash-effect { position: absolute; inset: 0; background: white; z-index: 100; opacity: 0; pointer-events: none; }
+#flash-effect.flash { animation: flashAnim 0.3s ease-out forwards; }
+@keyframes flashAnim { 0% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ===== PHOTO CONFIRM ===== */
+#photo-confirm {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%) scale(0.8);
+  z-index: 50; background: rgba(0,0,0,0.9);
+  border: 1px solid var(--green); border-radius: 8px;
+  padding: 16px 24px; text-align: center;
+  opacity: 0; pointer-events: none; transition: all 0.2s;
+}
+#photo-confirm.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+.confirm-check { font-size: 32px; }
+.confirm-text { font-size: 11px; color: var(--green); letter-spacing: 2px; text-transform: uppercase; margin-top: 4px; }
+.confirm-sub { font-size: 9px; color: var(--text-dim); margin-top: 4px; }
+
+/* ===== POINTS PANEL ===== */
+#points-panel {
+  position: absolute; inset: 0; z-index: 20;
+  background: rgba(0,0,0,0.95); padding: 20px 16px;
+  display: flex; flex-direction: column; gap: 16px;
+  opacity: 0; pointer-events: none; transition: opacity 0.3s; overflow-y: auto;
+}
+#points-panel.show { opacity: 1; pointer-events: all; }
+.panel-header { display: flex; justify-content: space-between; align-items: center; }
+.panel-title { font-family: 'Bebas Neue', sans-serif; font-size: 28px; letter-spacing: 3px; color: var(--ember); }
+.panel-close {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: rgba(255,255,255,0.08); border: none; color: var(--text);
+  font-size: 18px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+}
+.stat-card { background: var(--smoke); border-radius: 6px; padding: 12px 14px; border: 1px solid rgba(255,255,255,0.06); }
+.stat-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 6px; }
+.stat-value { font-family: 'Bebas Neue', sans-serif; font-size: 36px; color: var(--text); letter-spacing: 2px; }
+.stat-unit { font-size: 14px; color: var(--text-dim); }
+.milestone-row { display: flex; gap: 8px; }
+.milestone {
+  flex: 1; background: var(--smoke); border-radius: 6px; padding: 10px 8px;
+  text-align: center; border: 1px solid rgba(255,255,255,0.06); opacity: 0.4;
+}
+.milestone.achieved { opacity: 1; border-color: var(--ember); }
+.milestone-icon { font-size: 20px; }
+.milestone-day { font-size: 8px; color: var(--text-dim); margin-top: 4px; letter-spacing: 0.5px; }
+.rule-item { display: flex; align-items: flex-start; gap: 10px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.05); }
+.rule-icon { font-size: 16px; flex-shrink: 0; }
+.rule-text { font-size: 11px; color: var(--text-dim); line-height: 1.6; }
+
+/* ===== DEAD OVERLAY ===== */
+#dead-overlay {
+  position: absolute; inset: 0; z-index: 30;
+  background: rgba(0,0,0,0.95);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 12px; opacity: 0; pointer-events: none; transition: opacity 0.5s;
+}
+#dead-overlay.show { opacity: 1; pointer-events: all; }
+.dead-icon { font-size: 64px; animation: deadPulse 2s ease-in-out infinite; }
+@keyframes deadPulse { 0%, 100% { transform: scale(1); filter: grayscale(0.5); } 50% { transform: scale(0.95); filter: grayscale(1); } }
+.dead-title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 6px; color: var(--red); text-align: center; }
+.dead-desc { font-size: 12px; color: var(--text-dim); text-align: center; line-height: 2; }
+.dead-culprit { font-size: 11px; color: var(--red); margin-top: 4px; }
+.dead-restart {
+  margin-top: 8px; background: var(--fire); border: none; border-radius: 4px;
+  color: white; font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-weight: 600; letter-spacing: 2px; padding: 14px 32px; cursor: pointer;
+  transition: all 0.15s;
+}
+.dead-restart:active { transform: scale(0.96); }
+
+/* ===== TOAST ===== */
+#toast {
+  position: absolute; bottom: 200px; left: 50%; transform: translateX(-50%);
+  background: rgba(30,30,30,0.95); border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 20px; padding: 8px 18px; font-size: 12px;
+  white-space: nowrap; z-index: 90; opacity: 0;
+  transition: opacity 0.25s; pointer-events: none;
+}
+#toast.show { opacity: 1; }
+
+/* ===== DEMO BAR ===== */
+#demo-bar {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 50;
+  display: flex; gap: 0; background: rgba(255,50,0,0.08);
+  border-bottom: 1px solid rgba(255,50,0,0.2);
+}
+.demo-btn { flex: 1; padding: 6px 0; text-align: center; font-size: 9px; letter-spacing: 1px; color: rgba(255,255,255,0.3); cursor: pointer; text-transform: uppercase; }
+.demo-btn:active { background: rgba(255,255,255,0.1); color: rgba(255,255,255,0.6); }
+
+/* ===== PHOTO STRIP PREVIEW ===== */
+#strip-preview { position: absolute; top: 68px; right: 8px; z-index: 12; display: flex; flex-direction: column; gap: 3px; }
+.strip-thumb {
+  width: 32px; aspect-ratio: 1; border-radius: 3px;
+  background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1);
+  overflow: hidden; font-size: 14px; display: flex; align-items: center; justify-content: center;
+}
+
+/* ═══════════════════════════════════════════════════════
+   SETUP SCREEN — Màn hình nhập tên + phòng
+   ═══════════════════════════════════════════════════════ */
+#setup-screen {
+  position: absolute; inset: 0; z-index: 200;
+  background: var(--char);
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 0; padding: 24px;
+  transition: opacity 0.5s;
+}
+#setup-screen.hidden { opacity: 0; pointer-events: none; }
+
+.setup-fire { font-size: 56px; animation: flicker 1.5s ease-in-out infinite alternate; margin-bottom: 8px; }
+.setup-title { font-family: 'Bebas Neue', sans-serif; font-size: 38px; letter-spacing: 5px; color: var(--ember); text-align: center; }
+.setup-sub { font-size: 10px; color: var(--text-dim); letter-spacing: 2px; text-align: center; margin-bottom: 28px; text-transform: uppercase; }
+
+.setup-section { width: 100%; margin-bottom: 20px; }
+.setup-label { font-size: 9px; color: var(--text-dim); letter-spacing: 2px; text-transform: uppercase; margin-bottom: 8px; }
+.setup-input {
+  width: 100%; background: var(--smoke); border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 6px; padding: 12px 14px; color: var(--text);
+  font-family: 'IBM Plex Mono', monospace; font-size: 14px; letter-spacing: 1px;
+  outline: none; transition: border-color 0.2s;
+}
+.setup-input:focus { border-color: var(--ember); }
+.setup-input::placeholder { color: var(--text-dim); font-size: 12px; }
+
+/* Avatar picker */
+.avatar-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.avatar-opt {
+  width: 44px; height: 44px; border-radius: 8px;
+  background: var(--smoke); border: 1.5px solid rgba(255,255,255,0.08);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 22px; cursor: pointer; transition: all 0.15s;
+}
+.avatar-opt:active { transform: scale(0.92); }
+.avatar-opt.selected { border-color: var(--ember); background: rgba(255,195,0,0.15); box-shadow: 0 0 12px rgba(255,195,0,0.3); }
+
+/* Room options */
+.room-options { display: flex; gap: 10px; }
+.room-tab {
+  flex: 1; padding: 10px; text-align: center; border-radius: 6px;
+  border: 1px solid rgba(255,255,255,0.1); font-size: 11px; letter-spacing: 1px;
+  cursor: pointer; transition: all 0.2s; color: var(--text-dim);
+}
+.room-tab.active { border-color: var(--fire); color: var(--fire); background: rgba(255,69,0,0.1); }
+
+.setup-btn {
+  width: 100%; padding: 16px; border: none; border-radius: 8px;
+  background: var(--fire); color: white;
+  font-family: 'IBM Plex Mono', monospace; font-size: 13px;
+  font-weight: 600; letter-spacing: 3px; text-transform: uppercase;
+  cursor: pointer; transition: all 0.15s; margin-top: 8px;
+  box-shadow: 0 0 30px rgba(255,69,0,0.4);
+}
+.setup-btn:active { transform: scale(0.97); }
+
+/* ═══════════════════════════════════════════════════════
+   SYNC INDICATOR
+   ═══════════════════════════════════════════════════════ */
+#sync-dot {
+  position: absolute; top: 16px; left: 50%; transform: translateX(-50%);
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--text-dim); z-index: 15;
+  transition: background 0.3s;
+}
+#sync-dot.synced { background: var(--green); box-shadow: 0 0 8px var(--green); }
+#sync-dot.syncing { background: var(--ember); animation: syncPulse 0.6s ease-in-out infinite alternate; }
+#sync-dot.error { background: var(--red); }
+@keyframes syncPulse { from { opacity: 0.4; } to { opacity: 1; } }
+
+/* ═══════════════════════════════════════════════════════
+   NOTIFICATION PROMPT
+   ═══════════════════════════════════════════════════════ */
+#notif-prompt {
+  position: absolute; bottom: 200px; left: 16px; right: 16px; z-index: 60;
+  background: rgba(20,20,30,0.98); border: 1px solid var(--sleep-accent);
+  border-radius: 10px; padding: 14px 16px;
+  display: flex; flex-direction: column; gap: 10px;
+  opacity: 0; transform: translateY(20px);
+  pointer-events: none; transition: all 0.3s;
+}
+#notif-prompt.show { opacity: 1; transform: translateY(0); pointer-events: all; }
+.notif-text { font-size: 11px; color: var(--text); line-height: 1.6; }
+.notif-text strong { color: var(--sleep-accent); }
+.notif-actions { display: flex; gap: 8px; }
+.notif-yes, .notif-no {
+  flex: 1; padding: 8px; border: none; border-radius: 6px;
+  font-family: 'IBM Plex Mono', monospace; font-size: 10px;
+  letter-spacing: 1px; cursor: pointer; text-transform: uppercase;
+}
+.notif-yes { background: var(--sleep-accent); color: white; }
+.notif-no { background: rgba(255,255,255,0.08); color: var(--text-dim); }
+
+/* ═══════════════════════════════════════════════════════
+   LOADING STATE
+   ═══════════════════════════════════════════════════════ */
+#loading-overlay {
+  position: absolute; inset: 0; z-index: 150;
+  background: var(--char);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+  transition: opacity 0.5s;
+}
+#loading-overlay.hidden { opacity: 0; pointer-events: none; }
+.loading-fire { font-size: 40px; animation: flicker 1.5s ease-in-out infinite alternate; }
+.loading-text { font-size: 11px; color: var(--text-dim); letter-spacing: 3px; text-transform: uppercase; }
+.loading-dots::after { content: ''; animation: dots 1.5s steps(4, end) infinite; }
+@keyframes dots { 0%, 20% { content: '.'; } 40% { content: '..'; } 60%, 100% { content: '...'; } }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Setup Screen -->
+  <div id="setup-screen">
+    <div class="setup-fire">🔥</div>
+    <div class="setup-title">Biệt Đội Giữ Lửa</div>
+    <div class="setup-sub">Cùng nhau thắp sáng ngọn lửa</div>
+
+    <div class="setup-section">
+      <div class="setup-label">Tên của bạn</div>
+      <input type="text" class="setup-input" id="setup-name" placeholder="Nhập tên hiển thị..." maxlength="12" autocomplete="off">
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">Chọn avatar</div>
+      <div class="avatar-row" id="avatar-row">
+        <div class="avatar-opt selected" data-avatar="😊">😊</div>
+        <div class="avatar-opt" data-avatar="🐼">🐼</div>
+        <div class="avatar-opt" data-avatar="🦊">🦊</div>
+        <div class="avatar-opt" data-avatar="🐻">🐻</div>
+        <div class="avatar-opt" data-avatar="🐯">🐯</div>
+        <div class="avatar-opt" data-avatar="🐺">🐺</div>
+        <div class="avatar-opt" data-avatar="🦁">🦁</div>
+        <div class="avatar-opt" data-avatar="🐸">🐸</div>
+      </div>
+    </div>
+
+    <div class="setup-section">
+      <div class="setup-label">Tham gia nhóm</div>
+      <div class="room-options" style="margin-bottom: 10px;">
+        <div class="room-tab active" id="tab-join" onclick="switchRoomTab('join')">Vào phòng có sẵn</div>
+        <div class="room-tab" id="tab-create" onclick="switchRoomTab('create')">Tạo phòng mới</div>
+      </div>
+      <input type="text" class="setup-input" id="setup-room" placeholder="Nhập mã phòng (vd: FIRE01)..." maxlength="10" autocomplete="off" style="text-transform:uppercase;">
+      <div style="font-size:9px; color:var(--text-dim); margin-top:6px; letter-spacing:1px;" id="room-hint">
+        Chia sẻ mã phòng cho đồng đội để cùng kết nối
+      </div>
+    </div>
+
+    <button class="setup-btn" onclick="joinRoom()">🔥 Vào Trận</button>
+  </div>
+
+  <!-- Loading Overlay -->
+  <div id="loading-overlay" style="display:none;">
+    <div class="loading-fire">🔥</div>
+    <div class="loading-text">Đang kết nối<span class="loading-dots"></span></div>
+  </div>
+
+  <!-- Camera Layer -->
+  <div id="camera-layer">
+    <div id="camera-bg"></div>
+    <video id="video-feed" autoplay muted playsinline></video>
+  </div>
+
+  <!-- Viewfinder -->
+  <div id="viewfinder">
+    <div class="vf-corner tl"></div>
+    <div class="vf-corner tr"></div>
+    <div class="vf-corner bl"></div>
+    <div class="vf-corner br"></div>
+    <div class="vf-grid"></div>
+    <div class="vf-focus"></div>
+  </div>
+
+  <!-- Top HUD -->
+  <div id="top-hud">
+    <div id="fire-count">
+      <span class="fire-emoji">🔥</span>
+      <div>
+        <div class="fire-number" id="fire-number">0</div>
+        <div class="fire-label">ngày liên tiếp</div>
+      </div>
+    </div>
+    <div id="top-right">
+      <div id="live-time">--:--:--</div>
+      <div id="mode-badge">⚡ ACTIVE</div>
+    </div>
+  </div>
+
+  <!-- Room badge -->
+  <div id="room-badge" onclick="copyRoomCode()">PHÒNG: <span id="room-code-display">----</span></div>
+
+  <!-- Sync indicator -->
+  <div id="sync-dot" title="Đồng bộ Firebase"></div>
+
+  <!-- Strip preview -->
+  <div id="strip-preview"></div>
+
+  <!-- Countdown Ring -->
+  <div id="countdown-area">
+    <div id="countdown-ring-wrap">
+      <svg id="countdown-svg" viewBox="0 0 110 110">
+        <circle id="ring-bg" cx="55" cy="55" r="47.5"/>
+        <circle id="ring-progress" cx="55" cy="55" r="47.5"/>
+      </svg>
+      <div id="countdown-inner">
+        <div id="countdown-time">90:00</div>
+        <div id="countdown-sub">còn lại</div>
+      </div>
+    </div>
+    <div id="countdown-label">CHỤP TIẾP THEO</div>
+  </div>
+
+  <!-- Sleep Overlay -->
+  <div id="sleep-overlay">
+    <div class="sleep-moon">🌙</div>
+    <div class="sleep-title">Chế Độ Ngủ</div>
+    <div class="sleep-desc">
+      Sau 20:00 — ngọn lửa được bảo vệ<br>
+      Hệ thống sẽ tự động mở lại lúc<br>
+      <strong style="color:var(--sleep-accent)">06:00 sáng mai</strong>
+    </div>
+    <div class="sleep-resume">🌅 Nghỉ ngơi đã...</div>
+  </div>
+
+  <!-- Flash Effect -->
+  <div id="flash-effect"></div>
+
+  <!-- Photo Confirm -->
+  <div id="photo-confirm">
+    <div class="confirm-check">✅</div>
+    <div class="confirm-text">Ảnh đã ghi nhận!</div>
+    <div class="confirm-sub" id="confirm-sub-text">Đang đồng bộ...</div>
+  </div>
+
+  <!-- Dead Overlay -->
+  <div id="dead-overlay">
+    <div class="dead-icon">💀</div>
+    <div class="dead-title">LỬA ĐÃ TẮT</div>
+    <div class="dead-desc" id="dead-desc">
+      Một thành viên đã quên chụp ảnh<br>
+      Streak của cả đội về 0 rồi 😔<br>
+      Cùng nhau bắt đầu lại nào!
+    </div>
+    <button class="dead-restart" onclick="restartFire()">🔥 Thắp Lại Lửa</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- Notification Prompt -->
+  <div id="notif-prompt">
+    <div class="notif-text">
+      🔔 Bật <strong>thông báo</strong> để nhận cảnh báo khi sắp hết giờ chụp?
+    </div>
+    <div class="notif-actions">
+      <button class="notif-yes" onclick="enableNotifications()">Bật thông báo</button>
+      <button class="notif-no" onclick="dismissNotifPrompt()">Để sau</button>
+    </div>
+  </div>
+
+  <!-- Bottom Panel -->
+  <div id="bottom-panel">
+    <div id="member-grid">
+      <!-- Filled dynamically -->
+    </div>
+    <div id="controls-row">
+      <div class="ctrl-btn" id="flash-btn" onclick="toggleFlash()"><span id="flash-icon">⚡</span></div>
+      <div class="ctrl-btn" onclick="flipCamera()">🔄</div>
+      <div id="shutter-btn" onclick="takePhoto()"><div id="shutter-fire-ring"></div></div>
+      <div class="ctrl-btn" onclick="toggleCamera()">📷</div>
+      <div class="ctrl-btn" id="points-btn" onclick="togglePoints()"><span>🏆</span><span>ĐIỂM</span></div>
+    </div>
+  </div>
+
+  <!-- Points Panel -->
+  <div id="points-panel">
+    <div class="panel-header">
+      <div class="panel-title">🏆 Bảng Thành Tích</div>
+      <button class="panel-close" onclick="togglePoints()">✕</button>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🔥 Streak Hiện Tại</div>
+      <div class="stat-value"><span id="panel-fire">0</span> <span class="stat-unit">ngày</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📸 Tổng Ảnh Đã Chụp</div>
+      <div class="stat-value"><span id="panel-photos">0</span> <span class="stat-unit">ảnh</span></div>
+    </div>
+    <div class="stat-label" style="margin-top:4px;font-size:9px;letter-spacing:2px;text-transform:uppercase;">Cột Mốc</div>
+    <div class="milestone-row" id="milestones-row">
+      <div class="milestone" data-day="3"><div class="milestone-icon">🥉</div><div class="milestone-day">Ngày 3</div></div>
+      <div class="milestone" data-day="7"><div class="milestone-icon">🥈</div><div class="milestone-day">Ngày 7</div></div>
+      <div class="milestone" data-day="14"><div class="milestone-icon">🥇</div><div class="milestone-day">Ngày 14</div></div>
+      <div class="milestone" data-day="30"><div class="milestone-icon">💎</div><div class="milestone-day">Ngày 30</div></div>
+    </div>
+    <div class="stat-label" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;">Luật Chơi</div>
+    <div class="stat-card">
+      <div class="rule-item"><span class="rule-icon">🔥</span><div class="rule-text">Chụp ảnh mỗi <strong>90 phút</strong> để giữ lửa cháy mãi</div></div>
+      <div class="rule-item"><span class="rule-icon">💀</span><div class="rule-text">Nếu <strong>bất kỳ ai</strong> quên — lửa cả đội tắt về 0</div></div>
+      <div class="rule-item"><span class="rule-icon">🌙</span><div class="rule-text">Sau <strong>20:00</strong> — chế độ ngủ, không cần chụp</div></div>
+      <div class="rule-item" style="border:none"><span class="rule-icon">🌅</span><div class="rule-text">Hệ thống tự mở lại lúc <strong>06:00</strong> sáng hôm sau</div></div>
+    </div>
+    <div class="stat-card" style="margin-top:4px;">
+      <div class="stat-label">📱 Mã Phòng</div>
+      <div style="font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--ember); letter-spacing:4px;" id="panel-room-code">----</div>
+      <div style="font-size:9px;color:var(--text-dim);margin-top:4px;">Chia sẻ mã này cho đồng đội</div>
+      <button onclick="copyRoomCode()" style="margin-top:8px;width:100%;padding:8px;background:rgba(255,195,0,0.15);border:1px solid var(--ember);border-radius:4px;color:var(--ember);font-size:10px;letter-spacing:2px;cursor:pointer;">📋 SAO CHÉP MÃ</button>
+    </div>
+  </div>
+
+  <!-- Demo Bar -->
+  <div id="demo-bar">
+    <div class="demo-btn" onclick="demoUrgent()">⏰ Gấp</div>
+    <div class="demo-btn" onclick="demoSleep()">🌙 Ngủ</div>
+    <div class="demo-btn" onclick="demoDead()">💀 Tắt lửa</div>
+    <div class="demo-btn" onclick="demoWake()">🌅 Thức dậy</div>
+  </div>
+
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// FIREBASE INIT
+// ══════════════════════════════════════════════════════════
+let db, storage, messaging;
+let firebaseReady = false;
+
+const firebaseConfigured =
+  typeof firebase !== 'undefined' &&
+  FIREBASE_CONFIG &&
+  Object.values(FIREBASE_CONFIG).every(v => typeof v === 'string' && v && !v.includes('YOUR_'));
+
+if (firebaseConfigured) {
+  try {
+    firebase.initializeApp(FIREBASE_CONFIG);
+    db = firebase.firestore();
+    storage = firebase.storage();
+
+    // Messaging only works over HTTPS and only after you replace the placeholder key.
+    if ('serviceWorker' in navigator && typeof VAPID_KEY === 'string' && !VAPID_KEY.includes('YOUR_')) {
+      try {
+        messaging = firebase.messaging();
+      } catch (messagingErr) {
+        console.warn('ℹ️ Firebase Messaging unavailable:', messagingErr.message);
+      }
+    }
+
+    firebaseReady = true;
+    console.log('✅ Firebase connected');
+  } catch (err) {
+    console.warn('⚠️ Firebase init failed — running in demo mode:', err.message);
+    firebaseReady = false;
+  }
+} else {
+  console.warn('⚠️ Firebase config is still a placeholder — running in demo mode.');
+}
+
+// ══════════════════════════════════════════════════════════
+// STATE
+// ══════════════════════════════════════════════════════════
+const state = {
+  userId: null,
+  userName: '',
+  userAvatar: '😊',
+  roomId: null,
+  fireCount: 0,
+  isSleepMode: false,
+  isFlashOn: false,
+  isFrontCam: true,
+  cameraStream: null,
+  isCameraOn: false,
+  members: {},          // { userId: { name, avatar, done, photoUrl, isMe } }
+  totalPhotos: 0,
+  lastRoundId: null,    // current 90-min window identifier
+  unsubscribe: null,    // Firestore listener cleanup
+  isUploading: false,
+};
+
+// Round ID: e.g. "2024-01-15-06" = date + window index
+function getRoundId() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes();
+  // Windows from 06:00: 06-07:30, 07:30-09:00, ...
+  const totalMinutesSince6 = (h - 6) * 60 + m;
+  const windowIndex = Math.floor(totalMinutesSince6 / 90);
+  const dateStr = now.toISOString().slice(0, 10);
+  return `${dateStr}-W${windowIndex}`;
+}
+
+function getSecondsRemaining() {
+  const now = new Date();
+  const h = now.getHours(), m = now.getMinutes(), s = now.getSeconds();
+  const totalSecsSince6 = (h - 6) * 3600 + m * 60 + s;
+  const secsInWindow = totalSecsSince6 % (90 * 60);
+  return Math.max(0, 90 * 60 - secsInWindow);
+}
+
+// ══════════════════════════════════════════════════════════
+// SETUP SCREEN
+// ══════════════════════════════════════════════════════════
+let selectedAvatar = '😊';
+let roomMode = 'join'; // 'join' | 'create'
+
+document.getElementById('avatar-row').addEventListener('click', e => {
+  const opt = e.target.closest('.avatar-opt');
+  if (!opt) return;
+  document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
+  opt.classList.add('selected');
+  selectedAvatar = opt.dataset.avatar;
+});
+
+function switchRoomTab(mode) {
+  roomMode = mode;
+  document.getElementById('tab-join').classList.toggle('active', mode === 'join');
+  document.getElementById('tab-create').classList.toggle('active', mode === 'create');
+  const input = document.getElementById('setup-room');
+  const hint = document.getElementById('room-hint');
+  if (mode === 'create') {
+    input.value = generateRoomCode();
+    input.readOnly = true;
+    hint.textContent = 'Mã phòng đã tạo — chia sẻ cho đồng đội của bạn';
+  } else {
+    input.value = '';
+    input.readOnly = false;
+    hint.textContent = 'Chia sẻ mã phòng cho đồng đội để cùng kết nối';
+  }
+}
+
+function generateRoomCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  return Array.from({length: 6}, () => chars[Math.floor(Math.random() * chars.length)]).join('');
+}
+
+function generateUserId() {
+  return 'u_' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+async function joinRoom() {
+  const name = document.getElementById('setup-name').value.trim();
+  const room = document.getElementById('setup-room').value.trim().toUpperCase();
+
+  if (!name) { showToast('⚠️ Nhập tên của bạn trước!'); return; }
+  if (!room || room.length < 4) { showToast('⚠️ Nhập mã phòng hợp lệ!'); return; }
+
+  // Save to localStorage
+  localStorage.setItem('bdgl_userId', localStorage.getItem('bdgl_userId') || generateUserId());
+  localStorage.setItem('bdgl_name', name);
+  localStorage.setItem('bdgl_avatar', selectedAvatar);
+  localStorage.setItem('bdgl_room', room);
+
+  state.userId = localStorage.getItem('bdgl_userId');
+  state.userName = name;
+  state.userAvatar = selectedAvatar;
+  state.roomId = room;
+
+  // Show loading
+  document.getElementById('setup-screen').classList.add('hidden');
+  const loading = document.getElementById('loading-overlay');
+  loading.style.display = 'flex';
+
+  if (firebaseReady) {
+    setSyncState('syncing');
+    try {
+      await initFirebase();
+      loading.style.display = 'none';
+      onAppReady();
+    } catch (err) {
+      loading.style.display = 'none';
+      showToast('⚠️ Lỗi kết nối Firebase — chạy offline');
+      onAppReady();
+    }
+  } else {
+    setTimeout(() => {
+      loading.style.display = 'none';
+      onAppReady();
+      showToast('📴 Demo mode — Firebase chưa được cấu hình');
+    }, 800);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// FIREBASE FIRESTORE SYNC
+// ══════════════════════════════════════════════════════════
+async function initFirebase() {
+  const roomRef = db.collection('rooms').doc(state.roomId);
+
+  // Register this user in the room
+  const roundId = getRoundId();
+  await roomRef.set({
+    lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+    [`members.${state.userId}`]: {
+      name: state.userName,
+      avatar: state.userAvatar,
+      done: false,
+      photoUrl: null,
+      roundId: roundId,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+    }
+  }, { merge: true });
+
+  // Listen for real-time updates
+  state.unsubscribe = roomRef.onSnapshot(snap => {
+    if (!snap.exists) return;
+    const data = snap.data();
+    setSyncState('synced');
+
+    // Update fire count
+    if (typeof data.fireCount === 'number') {
+      state.fireCount = data.fireCount;
+      document.getElementById('fire-number').textContent = state.fireCount;
+      document.getElementById('panel-fire').textContent = state.fireCount;
+      updateMilestones(state.fireCount);
+    }
+
+    // Update total photos
+    if (typeof data.totalPhotos === 'number') {
+      state.totalPhotos = data.totalPhotos;
+      document.getElementById('panel-photos').textContent = state.totalPhotos;
+    }
+
+    // Update members
+    if (data.members) {
+      const curRoundId = getRoundId();
+      state.members = {};
+      Object.entries(data.members).forEach(([uid, m]) => {
+        state.members[uid] = {
+          ...m,
+          isMe: uid === state.userId,
+          done: m.roundId === curRoundId && m.done === true,
+        };
+      });
+      renderMembers();
+
+      // Check if fire is dead
+      if (data.fireDead && !document.getElementById('dead-overlay').classList.contains('show')) {
+        const culprit = data.fireDeadBy || 'ai đó';
+        document.getElementById('dead-desc').innerHTML =
+          `<strong style="color:var(--red)">${culprit}</strong> đã quên chụp ảnh<br>Streak của cả đội về 0 rồi 😔<br>Cùng nhau bắt đầu lại nào!`;
+        document.getElementById('dead-overlay').classList.add('show');
+      }
+
+      // Check if all done this round
+      const memberList = Object.values(state.members);
+      if (memberList.length >= 2) {
+        const allDone = memberList.every(m => m.done);
+        if (allDone && !state._justCelebrated) {
+          state._justCelebrated = getRoundId();
+          if (state._justCelebrated === getRoundId()) {
+            setTimeout(() => showToast('🔥🔥 Cả đội hoàn thành! Lửa tiếp tục cháy!'), 400);
+          }
+        }
+      }
+    }
+  }, err => {
+    console.error('Firestore error:', err);
+    setSyncState('error');
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// PHOTO UPLOAD TO FIREBASE STORAGE
+// ══════════════════════════════════════════════════════════
+async function uploadPhoto(blob) {
+  if (!firebaseReady || !storage) return null;
+
+  const roundId = getRoundId();
+  const path = `rooms/${state.roomId}/${roundId}/${state.userId}_${Date.now()}.jpg`;
+  const ref = storage.ref(path);
+
+  // Show upload progress on member card
+  const card = document.getElementById(`member-${state.userId}`);
+  let bar = card?.querySelector('.upload-bar');
+  if (!bar && card) { bar = document.createElement('div'); bar.className = 'upload-bar'; card.appendChild(bar); }
+
+  return new Promise((resolve, reject) => {
+    const task = ref.put(blob, { contentType: 'image/jpeg' });
+    task.on('state_changed',
+      snap => {
+        const pct = (snap.bytesTransferred / snap.totalBytes) * 100;
+        if (bar) bar.style.width = pct + '%';
+      },
+      err => { if (bar) bar.remove(); reject(err); },
+      async () => {
+        if (bar) bar.remove();
+        const url = await ref.getDownloadURL();
+        resolve(url);
+      }
+    );
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// MARK DONE IN FIRESTORE
+// ══════════════════════════════════════════════════════════
+async function markDoneInFirestore(photoUrl) {
+  if (!firebaseReady) return;
+  const roundId = getRoundId();
+  const roomRef = db.collection('rooms').doc(state.roomId);
+
+  await roomRef.set({
+    [`members.${state.userId}`]: {
+      name: state.userName,
+      avatar: state.userAvatar,
+      done: true,
+      photoUrl: photoUrl,
+      roundId: roundId,
+      lastSeen: firebase.firestore.FieldValue.serverTimestamp(),
+    },
+    totalPhotos: firebase.firestore.FieldValue.increment(1),
+    fireDead: false,
+  }, { merge: true });
+
+  // Check all members done → increment fire count next day
+  // (In production: use Cloud Functions for streak logic)
+}
+
+// ══════════════════════════════════════════════════════════
+// FIRE DEAD IN FIRESTORE
+// ══════════════════════════════════════════════════════════
+async function triggerFireDead(culpritName) {
+  if (!firebaseReady) return;
+  await db.collection('rooms').doc(state.roomId).set({
+    fireDead: true,
+    fireDeadBy: culpritName,
+    fireCount: 0,
+  }, { merge: true });
+}
+
+async function restartFirestore() {
+  if (!firebaseReady) return;
+  const roundId = getRoundId();
+  const resetMembers = {};
+  Object.keys(state.members).forEach(uid => {
+    resetMembers[`members.${uid}.done`] = false;
+    resetMembers[`members.${uid}.roundId`] = '';
+    resetMembers[`members.${uid}.photoUrl`] = null;
+  });
+  await db.collection('rooms').doc(state.roomId).set({
+    ...resetMembers, fireDead: false, fireDeadBy: null, fireCount: 0,
+  }, { merge: true });
+}
+
+// ══════════════════════════════════════════════════════════
+// RENDER MEMBERS
+// ══════════════════════════════════════════════════════════
+function renderMembers() {
+  const grid = document.getElementById('member-grid');
+  const memberArr = Object.entries(state.members)
+    .sort(([a], [b]) => (a === state.userId ? -1 : b === state.userId ? 1 : a.localeCompare(b)));
+
+  // Pad to 4
+  while (memberArr.length < 4) memberArr.push([`empty_${memberArr.length}`, null]);
+
+  grid.innerHTML = '';
+  memberArr.forEach(([uid, m], i) => {
+    const card = document.createElement('div');
+    card.className = 'member-card' + (m?.isMe ? ' me' : '') + (m?.done ? ' done' : '');
+    card.id = `member-${uid}`;
+    card.onclick = () => memberClick(uid, m);
+
+    if (!m) {
+      // Empty slot
+      card.innerHTML = `<div class="member-placeholder"><div class="member-avatar" style="opacity:0.2">➕</div><div class="member-name" style="opacity:0.3">Trống</div></div>`;
+    } else if (m.done && m.photoUrl) {
+      // Show actual photo
+      card.innerHTML = `<img class="member-photo" src="${m.photoUrl}" alt="${m.name}" loading="lazy">`;
+      if (m.isMe) {
+        const badge = document.createElement('div');
+        badge.style.cssText = 'position:absolute;bottom:0;left:0;right:0;background:rgba(255,195,0,0.85);color:#000;font-size:8px;font-weight:700;letter-spacing:1px;text-align:center;padding:2px 0;z-index:2;';
+        badge.textContent = 'BẠN';
+        card.appendChild(badge);
+      }
+    } else {
+      card.innerHTML = `<div class="member-placeholder"><div class="member-avatar">${m.avatar}</div><div class="member-name">${m.name}</div></div>`;
+      if (m.isMe && !m.done) {
+        const ring = document.createElement('div');
+        ring.className = 'waiting-ring';
+        card.appendChild(ring);
+      }
+    }
+    grid.appendChild(card);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// TAKE PHOTO
+// ══════════════════════════════════════════════════════════
+async function takePhoto() {
+  if (state.isSleepMode) { showToast('🌙 Đang ngủ, nghỉ ngơi đã~'); return; }
+  if (state.isUploading) { showToast('⏳ Đang upload ảnh...'); return; }
+
+  // Flash effect
+  const flash = document.getElementById('flash-effect');
+  flash.classList.add('flash');
+  setTimeout(() => flash.classList.remove('flash'), 400);
+
+  // Capture canvas
+  let blob = null;
+  if (state.isCameraOn) {
+    const video = document.getElementById('video-feed');
+    const canvas = document.createElement('canvas');
+    canvas.width = 480; canvas.height = 480;
+    const ctx = canvas.getContext('2d');
+    if (state.isFrontCam) { ctx.translate(480, 0); ctx.scale(-1, 1); }
+    ctx.drawImage(video, 0, 0, 480, 480);
+    blob = await new Promise(r => canvas.toBlob(r, 'image/jpeg', 0.82));
+    addToStrip(canvas.toDataURL());
+  }
+
+  // Show confirm
+  const confirm = document.getElementById('photo-confirm');
+  document.getElementById('confirm-sub-text').textContent = 'Đang đồng bộ...';
+  confirm.classList.add('show');
+  setTimeout(() => confirm.classList.remove('show'), 3000);
+
+  // Optimistic UI update
+  if (state.members[state.userId]) {
+    state.members[state.userId].done = true;
+    renderMembers();
+  }
+
+  // Upload + sync
+  state.isUploading = true;
+  setSyncState('syncing');
+  try {
+    let photoUrl = null;
+    if (blob && firebaseReady) {
+      photoUrl = await uploadPhoto(blob);
+    }
+    await markDoneInFirestore(photoUrl);
+    document.getElementById('confirm-sub-text').textContent = '✓ Đã lưu lên cloud!';
+    setSyncState('synced');
+    showToast('✅ Ảnh đã ghi nhận! Chờ đồng đội...');
+  } catch (err) {
+    document.getElementById('confirm-sub-text').textContent = '⚠️ Lỗi upload';
+    setSyncState('error');
+    showToast('⚠️ Lỗi kết nối, thử lại sau');
+  } finally {
+    state.isUploading = false;
+  }
+}
+
+function addToStrip(dataUrl) {
+  const strip = document.getElementById('strip-preview');
+  const thumb = document.createElement('div');
+  thumb.className = 'strip-thumb';
+  const img = document.createElement('img');
+  img.src = dataUrl;
+  img.style.cssText = 'width:100%;height:100%;object-fit:cover;';
+  thumb.appendChild(img);
+  strip.insertBefore(thumb, strip.firstChild);
+  if (strip.children.length > 3) strip.removeChild(strip.lastChild);
+}
+
+// ══════════════════════════════════════════════════════════
+// CLOCK & COUNTDOWN
+// ══════════════════════════════════════════════════════════
+const circumference = 2 * Math.PI * 47.5;
+document.getElementById('ring-progress').style.strokeDasharray = circumference;
+
+function updateClock() {
+  const now = new Date();
+  const h = String(now.getHours()).padStart(2, '0');
+  const m = String(now.getMinutes()).padStart(2, '0');
+  const s = String(now.getSeconds()).padStart(2, '0');
+  document.getElementById('live-time').textContent = `${h}:${m}:${s}`;
+
+  const hour = now.getHours();
+  if (!state.isSleepMode && (hour >= 20 || hour < 6)) enterSleep();
+  else if (state.isSleepMode && hour >= 6 && hour < 20) exitSleep();
+
+  // Check round change
+  const curRound = getRoundId();
+  if (state.lastRoundId && curRound !== state.lastRoundId) onNewRound();
+  state.lastRoundId = curRound;
+}
+setInterval(updateClock, 1000);
+
+function updateCountdown() {
+  if (state.isSleepMode) return;
+  const secs = getSecondsRemaining();
+  const mins = Math.floor(secs / 60);
+  const s = secs % 60;
+  document.getElementById('countdown-time').textContent = `${String(mins).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  const progress = secs / (90 * 60);
+  const offset = circumference * (1 - progress);
+  const ring = document.getElementById('ring-progress');
+  ring.style.strokeDashoffset = offset;
+
+  const isUrgent = secs < 5 * 60;
+  ring.style.stroke = isUrgent ? 'var(--red)' : 'var(--fire)';
+  ring.style.filter = isUrgent ? 'drop-shadow(0 0 8px var(--red))' : 'drop-shadow(0 0 6px var(--fire))';
+
+  const ctArea = document.getElementById('countdown-area');
+  if (isUrgent) ctArea.classList.add('urgent-pulse');
+  else ctArea.classList.remove('urgent-pulse');
+
+  // Notify at 10 min and 2 min
+  if (secs === 10 * 60) scheduleNotification('⏰ Còn 10 phút! Mau chụp ảnh!', 0);
+  if (secs === 2 * 60) scheduleNotification('🚨 Còn 2 phút! Chụp ngay!', 0);
+}
+setInterval(updateCountdown, 1000);
+
+// ══════════════════════════════════════════════════════════
+// NEW ROUND CHECK
+// ══════════════════════════════════════════════════════════
+async function onNewRound() {
+  if (!state.roomId) return;
+
+  // Check if any members missed the previous round
+  const missedMembers = Object.entries(state.members)
+    .filter(([uid, m]) => !m.done && m.name)
+    .map(([uid, m]) => m.name);
+
+  if (missedMembers.length > 0) {
+    // Fire dead!
+    await triggerFireDead(missedMembers.join(', '));
+  } else if (Object.values(state.members).some(m => m.name)) {
+    // All done — increment fire count
+    if (firebaseReady) {
+      const hour = new Date().getHours();
+      // Only increment once per day at midnight-ish by counting completed rounds
+      // (Simplified: increment every full round completion)
+      // In production, use Cloud Functions triggered at round boundaries
+    }
+    showToast('✅ Vòng mới bắt đầu!');
+  }
+
+  // Reset done status for new round
+  if (firebaseReady) {
+    const updates = {};
+    Object.keys(state.members).forEach(uid => {
+      updates[`members.${uid}.done`] = false;
+      updates[`members.${uid}.photoUrl`] = null;
+      updates[`members.${uid}.roundId`] = getRoundId();
+    });
+    await db.collection('rooms').doc(state.roomId).set(updates, { merge: true });
+  } else {
+    Object.values(state.members).forEach(m => { m.done = false; m.photoUrl = null; });
+    renderMembers();
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// CAMERA
+// ══════════════════════════════════════════════════════════
+async function toggleCamera() {
+  if (state.isCameraOn) { stopCamera(); showToast('📷 Camera đã tắt'); }
+  else await startCamera();
+}
+
+async function startCamera() {
+  try {
+    if (!navigator.mediaDevices || typeof navigator.mediaDevices.getUserMedia !== 'function') {
+      throw new Error('Camera API not supported');
+    }
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: state.isFrontCam ? 'user' : 'environment', width: {ideal: 1280}, height: {ideal: 720} }
+    });
+    state.cameraStream = stream;
+    state.isCameraOn = true;
+    const video = document.getElementById('video-feed');
+    video.srcObject = stream;
+    video.classList.add('active');
+    video.style.transform = state.isFrontCam ? 'scaleX(-1)' : 'scaleX(1)';
+    document.getElementById('shutter-btn').classList.add('fire-mode');
+    showToast('✅ Camera đã bật');
+  } catch { showToast('⚠️ Cho phép Camera để tiếp tục'); }
+}
+
+function stopCamera() {
+  state.cameraStream?.getTracks().forEach(t => t.stop());
+  state.cameraStream = null;
+  state.isCameraOn = false;
+  const video = document.getElementById('video-feed');
+  video.srcObject = null;
+  video.classList.remove('active');
+  document.getElementById('shutter-btn').classList.remove('fire-mode');
+}
+
+async function flipCamera() {
+  state.isFrontCam = !state.isFrontCam;
+  if (state.isCameraOn) { stopCamera(); await startCamera(); }
+  showToast(state.isFrontCam ? '🤳 Cam trước' : '📸 Cam sau');
+}
+
+function toggleFlash() {
+  state.isFlashOn = !state.isFlashOn;
+  document.getElementById('flash-btn').classList.toggle('flash-on', state.isFlashOn);
+  if (state.cameraStream) {
+    const track = state.cameraStream.getVideoTracks()[0];
+    if (track?.getCapabilities?.()?.torch) {
+      track.applyConstraints({ advanced: [{ torch: state.isFlashOn }] }).catch(() => {});
+    }
+  }
+  showToast(state.isFlashOn ? '⚡ Flash BẬT' : '⚡ Flash TẮT');
+}
+
+// ══════════════════════════════════════════════════════════
+// SLEEP MODE
+// ══════════════════════════════════════════════════════════
+function enterSleep() {
+  state.isSleepMode = true;
+  document.getElementById('sleep-overlay').classList.add('active');
+  document.getElementById('mode-badge').textContent = '🌙 SLEEP';
+  document.getElementById('mode-badge').classList.add('sleep');
+  document.getElementById('ring-progress').classList.add('sleep-mode');
+  const overlay = document.getElementById('sleep-overlay');
+  // Clear old stars
+  overlay.querySelectorAll('.star').forEach(s => s.remove());
+  for (let i = 0; i < 30; i++) {
+    const star = document.createElement('div');
+    star.className = 'star';
+    star.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${1+Math.random()*3}s;animation-delay:${Math.random()*2}s;`;
+    overlay.appendChild(star);
+  }
+}
+
+function exitSleep() {
+  state.isSleepMode = false;
+  document.getElementById('sleep-overlay').classList.remove('active');
+  document.getElementById('mode-badge').textContent = '⚡ ACTIVE';
+  document.getElementById('mode-badge').classList.remove('sleep');
+  document.getElementById('ring-progress').classList.remove('sleep-mode');
+  showToast('🌅 Buổi sáng bắt đầu! Hãy chụp ảnh đầu tiên~');
+}
+
+// ══════════════════════════════════════════════════════════
+// NOTIFICATIONS (Web Push)
+// ══════════════════════════════════════════════════════════
+function hasNotificationSupport() {
+  return typeof Notification !== 'undefined';
+}
+
+function scheduleNotification(msg, delayMs) {
+  if (!hasNotificationSupport()) return;
+  if (Notification.permission === 'granted') {
+    setTimeout(() => new Notification('🔥 Biệt Đội Giữ Lửa', { body: msg, icon: '🔥' }), delayMs);
+  }
+}
+
+async function enableNotifications() {
+  dismissNotifPrompt();
+  if (!hasNotificationSupport()) {
+    showToast('⚠️ Trình duyệt này không hỗ trợ thông báo');
+    return;
+  }
+
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      showToast('🔔 Thông báo đã bật!');
+      localStorage.setItem('bdgl_notif', 'granted');
+      // Get FCM token if messaging available
+      if (messaging) {
+        const token = await messaging.getToken({ vapidKey: VAPID_KEY });
+        if (token && firebaseReady) {
+          await db.collection('rooms').doc(state.roomId).set({
+            [`members.${state.userId}.fcmToken`]: token
+          }, { merge: true });
+        }
+      }
+    } else {
+      showToast('❌ Thông báo bị từ chối');
+    }
+  } catch (err) { showToast('⚠️ Lỗi khi bật thông báo'); }
+}
+
+function dismissNotifPrompt() {
+  document.getElementById('notif-prompt').classList.remove('show');
+  localStorage.setItem('bdgl_notif', 'dismissed');
+}
+
+function showNotifPrompt() {
+  if (!hasNotificationSupport()) return;
+  if (Notification.permission === 'default' && !localStorage.getItem('bdgl_notif')) {
+    setTimeout(() => document.getElementById('notif-prompt').classList.add('show'), 3000);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION
+// ══════════════════════════════════════════════════════════
+async function registerServiceWorker() {
+  if ('serviceWorker' in navigator) {
+    try {
+      // The SW file must exist at /firebase-messaging-sw.js
+      await navigator.serviceWorker.register('/firebase-messaging-sw.js');
+      console.log('✅ Service worker registered');
+    } catch { console.log('ℹ️ Service worker not available (local file?)'); }
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// UI HELPERS
+// ══════════════════════════════════════════════════════════
+function memberClick(uid, m) {
+  if (!m) { showToast('💤 Ô trống — chờ đồng đội tham gia'); return; }
+  if (m.done) showToast(`✅ ${m.name} đã hoàn thành rồi!`);
+  else showToast(`⏳ Chờ ${m.name} chụp ảnh...`);
+}
+
+function togglePoints() {
+  document.getElementById('points-panel').classList.toggle('show');
+  document.getElementById('panel-fire').textContent = state.fireCount;
+}
+
+function updateMilestones(count) {
+  document.querySelectorAll('.milestone[data-day]').forEach(m => {
+    m.classList.toggle('achieved', count >= parseInt(m.dataset.day));
+  });
+}
+
+function copyRoomCode() {
+  if (!state.roomId) return;
+  navigator.clipboard?.writeText(state.roomId).then(() => showToast(`📋 Đã sao chép: ${state.roomId}`))
+    .catch(() => showToast(`Mã phòng: ${state.roomId}`));
+}
+
+function setSyncState(s) {
+  const dot = document.getElementById('sync-dot');
+  dot.className = '';
+  dot.classList.add(s);
+}
+
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2500);
+}
+
+async function restartFire() {
+  document.getElementById('dead-overlay').classList.remove('show');
+  await restartFirestore();
+  Object.values(state.members).forEach(m => { m.done = false; m.photoUrl = null; });
+  state.fireCount = 0;
+  document.getElementById('fire-number').textContent = '0';
+  renderMembers();
+  showToast('🔥 Lửa mới được thắp lên! Cùng cố gắng!');
+}
+
+// ══════════════════════════════════════════════════════════
+// APP READY
+// ══════════════════════════════════════════════════════════
+function onAppReady() {
+  document.getElementById('room-code-display').textContent = state.roomId;
+  document.getElementById('panel-room-code').textContent = state.roomId;
+  updateClock();
+  updateCountdown();
+
+  // Start camera (safe on HTTPS only)
+  if (window.isSecureContext && navigator.mediaDevices && typeof navigator.mediaDevices.getUserMedia === 'function') {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        state.cameraStream = stream;
+        state.isCameraOn = true;
+        const video = document.getElementById('video-feed');
+        video.srcObject = stream;
+        video.classList.add('active');
+        video.style.transform = 'scaleX(-1)';
+        document.getElementById('shutter-btn').classList.add('fire-mode');
+      })
+      .catch(err => {
+        console.warn('Camera unavailable:', err.message);
+        showToast('📷 Camera chưa sẵn sàng trên môi trường này');
+      });
+  } else {
+    console.warn('Camera unavailable: insecure context or unsupported browser');
+  }
+
+  // Check sleep
+  const h = new Date().getHours();
+  if (h >= 20 || h < 6) enterSleep();
+
+  // Notification prompt
+  showNotifPrompt();
+  registerServiceWorker();
+
+  // Init members if not firebase
+  if (!firebaseReady) {
+    state.members[state.userId] = {
+      name: state.userName, avatar: state.userAvatar,
+      done: false, isMe: true, photoUrl: null,
+    };
+    renderMembers();
+    setSyncState('error');
+  }
+
+  showToast(`🔥 Chào ${state.userName}! Phòng ${state.roomId}`);
+}
+
+// ══════════════════════════════════════════════════════════
+// DEMO CONTROLS
+// ══════════════════════════════════════════════════════════
+function demoUrgent() { showToast('⏰ Còn ít thời gian!'); }
+function demoSleep() { enterSleep(); }
+function demoWake() { exitSleep(); }
+function demoDead() { document.getElementById('dead-overlay').classList.add('show'); }
+
+// ══════════════════════════════════════════════════════════
+// INIT — Check saved session
+// ══════════════════════════════════════════════════════════
+window.addEventListener('load', () => {
+  const savedUserId = localStorage.getItem('bdgl_userId');
+  const savedName = localStorage.getItem('bdgl_name');
+  const savedAvatar = localStorage.getItem('bdgl_avatar');
+  const savedRoom = localStorage.getItem('bdgl_room');
+
+  if (savedUserId && savedName && savedRoom) {
+    // Auto-rejoin
+    state.userId = savedUserId;
+    state.userName = savedName;
+    state.userAvatar = savedAvatar || '😊';
+    state.roomId = savedRoom;
+
+    document.getElementById('setup-screen').classList.add('hidden');
+    const loading = document.getElementById('loading-overlay');
+    loading.style.display = 'flex';
+
+    if (firebaseReady) {
+      setSyncState('syncing');
+      initFirebase()
+        .then(() => { loading.style.display = 'none'; onAppReady(); })
+        .catch(() => { loading.style.display = 'none'; onAppReady(); });
+    } else {
+      setTimeout(() => { loading.style.display = 'none'; onAppReady(); }, 600);
+    }
+  }
+  // else: setup screen is shown by default
+});
+</script>
+
+<!-- ══════════════════════════════════════════════════════
+     HƯỚNG DẪN TRIỂN KHAI (ẩn — chỉ xem trong source)
+     ══════════════════════════════════════════════════════
+  
+  1. TẠO FIREBASE PROJECT
+     → https://console.firebase.google.com
+     → Tạo project → Add Web App → Lấy firebaseConfig
+     → Thay thế FIREBASE_CONFIG ở đầu file
+  
+  2. BẬT CÁC DỊCH VỤ TRONG CONSOLE
+     → Firestore Database (Start in test mode)
+     → Storage (Start in test mode)
+     → Cloud Messaging (lấy VAPID key)
+     → Thay VAPID_KEY ở đầu file
+  
+  3. TẠO FILE firebase-messaging-sw.js (đặt cùng thư mục)
+     Copy nội dung sau vào file:
+     
+     importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js');
+     importScripts('https://www.gstatic.com/firebasejs/10.7.1/firebase-messaging-compat.js');
+     firebase.initializeApp({ [dán firebaseConfig vào đây] });
+     const messaging = firebase.messaging();
+     messaging.onBackgroundMessage(payload => {
+       self.registration.showNotification(payload.notification.title, {
+         body: payload.notification.body, icon: '/icon.png'
+       });
+     });
+  
+  4. DEPLOY LÊN FIREBASE HOSTING
+     npm install -g firebase-tools
+     firebase login
+     firebase init hosting
+     firebase deploy
+  
+  5. FIRESTORE RULES (Console → Firestore → Rules)
+     rules_version = '2';
+     service cloud.firestore {
+       match /databases/{database}/documents {
+         match /rooms/{roomId} {
+           allow read, write: if true; // Đổi thành auth check khi production
+         }
+       }
+     }
+     
+  ══════════════════════════════════════════════════════ -->
+</body>
+</html>
