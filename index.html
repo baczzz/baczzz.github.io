@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Biệt Đội Giữ Lửa 🔥</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --fire: #FF4500;
+    --ember: #FFC300;
+    --char: #0D0D0D;
+    --smoke: #1E1E1E;
+    --smoke2: #2A2A2A;
+    --text: #F5F0E8;
+    --text-dim: #7A7060;
+    --green: #39FF14;
+    --red: #FF1744;
+    --sleep-accent: #4A7BFF;
+  }
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; }
+  html,body { width:100%; height:100%; background:var(--char); color:var(--text); font-family:'IBM Plex Mono',monospace; overflow:hidden; user-select:none; }
+  #app { width:100%; height:100%; position:relative; }
+
+  /* ── JOIN SCREEN ── */
+  #join-screen {
+    position:absolute; inset:0; z-index:100;
+    background:var(--char);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    padding:28px 24px; overflow-y:auto;
+  }
+  #join-screen.hidden { display:none; }
+  .join-logo { font-size:50px; animation:flicker 1.5s ease-in-out infinite alternate; margin-bottom:10px; }
+  @keyframes flicker { 0%{transform:scale(1) rotate(-2deg);filter:brightness(1);} 100%{transform:scale(1.08) rotate(1deg);filter:brightness(1.3);} }
+  .join-title { font-family:'Bebas Neue',sans-serif; font-size:32px; letter-spacing:4px; color:var(--ember); text-shadow:0 0 30px rgba(255,195,0,0.35); margin-bottom:4px; }
+  .join-sub { font-size:10px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:28px; }
+  .join-field { width:100%; max-width:320px; margin-bottom:14px; }
+  .join-label { font-size:9px; letter-spacing:2px; text-transform:uppercase; color:var(--text-dim); margin-bottom:6px; display:block; }
+  .join-input {
+    width:100%; padding:13px 15px;
+    background:var(--smoke); border:1.5px solid rgba(255,255,255,0.08);
+    border-radius:6px; color:var(--text);
+    font-family:'IBM Plex Mono',monospace; font-size:14px; letter-spacing:1px;
+    outline:none; transition:border-color 0.2s;
+  }
+  .join-input:focus { border-color:var(--fire); }
+  .join-input::placeholder { color:var(--text-dim); font-size:11px; }
+  .avatar-picker { width:100%; max-width:320px; margin-bottom:20px; }
+  .avatar-row { display:flex; gap:8px; flex-wrap:wrap; }
+  .avatar-opt {
+    width:40px; height:40px; border-radius:8px;
+    background:var(--smoke); border:1.5px solid rgba(255,255,255,0.06);
+    font-size:20px; display:flex; align-items:center; justify-content:center;
+    cursor:pointer; transition:all 0.15s;
+  }
+  .avatar-opt.selected { border-color:var(--ember); background:rgba(255,195,0,0.1); box-shadow:0 0 10px rgba(255,195,0,0.2); }
+  .join-btn {
+    width:100%; max-width:320px; padding:15px;
+    background:var(--fire); border:none; border-radius:6px; color:white;
+    font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600;
+    letter-spacing:3px; text-transform:uppercase; cursor:pointer;
+    box-shadow:0 0 28px rgba(255,69,0,0.28); transition:all 0.15s; margin-bottom:14px;
+  }
+  .join-btn:active { transform:scale(0.97); }
+  .join-divider { width:100%; max-width:320px; display:flex; align-items:center; gap:10px; margin-bottom:14px; }
+  .join-divider::before,.join-divider::after { content:''; flex:1; height:1px; background:rgba(255,255,255,0.07); }
+  .join-divider span { font-size:9px; color:var(--text-dim); letter-spacing:1px; }
+  .create-btn {
+    width:100%; max-width:320px; padding:13px;
+    background:transparent; border:1.5px solid rgba(255,255,255,0.1); border-radius:6px;
+    color:var(--text-dim); font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:2px;
+    cursor:pointer; transition:all 0.15s; margin-bottom:12px;
+  }
+  .create-btn:active { border-color:var(--ember); color:var(--ember); }
+  #room-display {
+    display:none; width:100%; max-width:320px;
+    background:rgba(255,195,0,0.05); border:1px dashed rgba(255,195,0,0.3);
+    border-radius:6px; padding:12px 16px; text-align:center; margin-top:4px;
+  }
+  .rd-label { font-size:9px; color:var(--text-dim); letter-spacing:2px; margin-bottom:4px; }
+  .rd-code { font-family:'Bebas Neue',sans-serif; font-size:26px; letter-spacing:6px; color:var(--ember); }
+  .rd-hint { font-size:9px; color:var(--text-dim); margin-top:4px; }
+  #join-toast {
+    position:fixed; top:16px; left:50%; transform:translateX(-50%);
+    background:#111; border:1px solid rgba(255,195,0,0.4); color:var(--ember);
+    padding:8px 16px; border-radius:20px; font-size:11px; letter-spacing:1px;
+    opacity:0; transition:opacity 0.3s; z-index:999; white-space:nowrap;
+    pointer-events:none;
+  }
+  #join-toast.show { opacity:1; }
+
+  /* ── MAIN APP ── */
+  #main-app { position:absolute; inset:0; display:none; }
+  #main-app.active { display:block; }
+
+  /* Camera */
+  #camera-layer { position:absolute; inset:0; overflow:hidden; }
+  #camera-bg { position:absolute; inset:0; background:radial-gradient(ellipse at 30% 40%,#1a1a2e 0%,#0a0a0a 70%); }
+  #video-feed { width:100%; height:100%; object-fit:cover; opacity:0; transition:opacity 0.5s; }
+  #video-feed.active { opacity:1; }
+  #camera-layer::after {
+    content:''; position:absolute; inset:0;
+    background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,0,0,0.07) 3px,rgba(0,0,0,0.07) 4px);
+    pointer-events:none; z-index:2;
+  }
+
+  /* Viewfinder */
+  #viewfinder { position:absolute; inset:0; pointer-events:none; z-index:3; }
+  .vf-corner { position:absolute; width:24px; height:24px; border-color:rgba(255,255,255,0.5); border-style:solid; }
+  .vf-corner.tl { top:66px; left:12px; border-width:2px 0 0 2px; }
+  .vf-corner.tr { top:66px; right:12px; border-width:2px 2px 0 0; }
+  .vf-corner.bl { bottom:175px; left:12px; border-width:0 0 2px 2px; }
+  .vf-corner.br { bottom:175px; right:12px; border-width:0 2px 2px 0; }
+
+  /* Top HUD */
+  #top-hud {
+    position:absolute; top:0; left:0; right:0; z-index:10;
+    display:flex; justify-content:space-between; align-items:center;
+    padding:13px 15px 10px;
+    background:linear-gradient(to bottom,rgba(0,0,0,0.78) 0%,transparent 100%);
+  }
+  #fire-count { display:flex; align-items:center; gap:6px; }
+  .fire-emoji { font-size:22px; animation:flicker 1.5s ease-in-out infinite alternate; }
+  .fire-number { font-family:'Bebas Neue',sans-serif; font-size:32px; color:var(--ember); line-height:1; text-shadow:0 0 20px rgba(255,195,0,0.45); }
+  .fire-label { font-size:9px; color:var(--text-dim); letter-spacing:1px; text-transform:uppercase; margin-top:2px; }
+  #top-right { display:flex; flex-direction:column; align-items:flex-end; gap:4px; }
+  #live-time { font-size:11px; color:var(--text-dim); letter-spacing:1px; }
+  #mode-badge {
+    font-size:9px; letter-spacing:2px; padding:3px 8px; border-radius:2px;
+    text-transform:uppercase; font-weight:600;
+    background:rgba(255,69,0,0.18); border:1px solid var(--fire); color:var(--fire);
+    transition:all 0.5s;
+  }
+  #mode-badge.sleep { background:rgba(74,123,255,0.15); border-color:var(--sleep-accent); color:var(--sleep-accent); }
+
+  /* Room chip */
+  #room-chip {
+    position:absolute; top:66px; left:12px; z-index:11;
+    background:rgba(0,0,0,0.55); border:1px solid rgba(255,255,255,0.07);
+    border-radius:12px; padding:3px 10px; font-size:9px; letter-spacing:1.5px; color:var(--text-dim);
+  }
+  #room-chip span { color:var(--ember); font-weight:600; }
+
+  /* Countdown */
+  #countdown-area {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,calc(-50% - 20px));
+    z-index:5; display:flex; flex-direction:column; align-items:center; gap:6px;
+    pointer-events:none; transition:opacity 0.4s;
+  }
+  #countdown-area.done-state { opacity:0.25; }
+  #countdown-ring-wrap { position:relative; width:110px; height:110px; }
+  #countdown-svg { width:110px; height:110px; transform:rotate(-90deg); }
+  #ring-bg { fill:none; stroke:rgba(255,255,255,0.07); stroke-width:3; }
+  #ring-progress { fill:none; stroke:var(--fire); stroke-width:3; stroke-linecap:round; transition:stroke-dashoffset 1s linear,stroke 0.5s; filter:drop-shadow(0 0 6px var(--fire)); }
+  #countdown-inner { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; }
+  #countdown-time { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:2px; line-height:1; }
+  #countdown-sub { font-size:8px; color:var(--text-dim); letter-spacing:1.5px; text-transform:uppercase; }
+  #countdown-label { font-size:9px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; }
+  @keyframes urgentPulse { 0%,100%{opacity:1;} 50%{opacity:0.3;} }
+  .urgent-pulse { animation:urgentPulse 0.8s ease-in-out infinite; }
+
+  /* Done badge */
+  #done-badge {
+    position:absolute; top:50%; left:50%;
+    transform:translate(-50%,calc(-50% - 20px));
+    z-index:6; pointer-events:none; opacity:0;
+    text-align:center; transition:opacity 0.4s;
+  }
+  #done-badge.show { opacity:1; }
+  .done-check { font-size:42px; }
+  .done-text { font-family:'Bebas Neue',sans-serif; font-size:15px; letter-spacing:3px; color:var(--green); margin-top:4px; }
+
+  /* ── PHOTO GRID (4 cells) ── */
+  #photo-grid {
+    position:absolute; z-index:10;
+    bottom:160px;
+    left:50%; transform:translateX(-50%);
+    width:calc(100% - 24px); max-width:280px;
+    display:grid;
+    grid-template-columns:1fr 1fr;
+    grid-template-rows:1fr 1fr;
+    gap:6px;
+    aspect-ratio:1;
+  }
+  .photo-cell {
+    position:relative; border-radius:8px; overflow:hidden;
+    background:var(--smoke); border:1.5px solid rgba(255,255,255,0.07);
+    cursor:pointer; transition:border-color 0.3s,box-shadow 0.3s;
+  }
+  .photo-cell.me-cell { border-color:var(--ember); box-shadow:0 0 12px rgba(255,195,0,0.18); }
+  .photo-cell.cell-done { border-color:var(--green); box-shadow:0 0 10px rgba(57,255,20,0.2); }
+  .photo-cell.cell-waiting { border-color:rgba(255,255,255,0.07); }
+  .photo-cell.cell-empty { border-color:rgba(255,255,255,0.04); }
+  /* My live video */
+  #my-cell-video { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; transform:scaleX(-1); }
+  /* Overlay on my cell when no camera */
+  #my-cell-overlay {
+    position:absolute; inset:0;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:rgba(0,0,0,0.45); gap:4px;
+  }
+  #my-cell-overlay.hidden { display:none; }
+  .my-cam-icon { font-size:22px; }
+  .my-cam-label { font-size:8px; color:rgba(255,255,255,0.65); letter-spacing:1px; }
+  /* Me badge */
+  .me-badge {
+    position:absolute; bottom:0; left:0; right:0;
+    background:rgba(255,195,0,0.85); color:#000;
+    font-size:7px; font-weight:700; letter-spacing:1.5px;
+    text-align:center; padding:2px 0; z-index:3;
+  }
+  /* Snapshot overlay on my cell after photo */
+  .cell-snapshot { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; z-index:2; }
+  /* Teammate cells */
+  .cell-placeholder { width:100%; height:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:3px; }
+  .cell-avatar { font-size:20px; }
+  .cell-name { font-size:8px; color:var(--text-dim); letter-spacing:0.5px; }
+  .cell-status { font-size:8px; margin-top:1px; }
+  .cell-photo-img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:none; z-index:2; }
+  .cell-check { position:absolute; top:4px; right:5px; font-size:10px; color:var(--green); font-weight:700; display:none; z-index:4; }
+  .photo-cell.cell-done .cell-check { display:block; }
+  .photo-cell.cell-done .cell-photo-img { display:block; }
+  .photo-cell.cell-done .cell-placeholder { display:none; }
+  /* Pulse ring */
+  .pulse-ring {
+    position:absolute; inset:-3px; border-radius:10px;
+    border:2px solid rgba(255,195,0,0.28);
+    animation:waitRing 2s ease-in-out infinite; z-index:1;
+  }
+  .photo-cell.cell-done .pulse-ring,
+  .photo-cell.cell-empty .pulse-ring { display:none; }
+  @keyframes waitRing { 0%,100%{opacity:0.2;transform:scale(0.97);} 50%{opacity:0.7;transform:scale(1.02);} }
+
+  /* ── BOTTOM PANEL ── */
+  #bottom-panel {
+    position:absolute; bottom:0; left:0; right:0; z-index:10;
+    background:linear-gradient(to top,rgba(0,0,0,0.96) 70%,transparent 100%);
+    padding:8px 12px 20px;
+  }
+  #controls-row { display:flex; align-items:center; justify-content:space-between; padding:0 4px; }
+  .ctrl-btn {
+    width:44px; height:44px; border-radius:50%;
+    background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.12);
+    display:flex; align-items:center; justify-content:center;
+    cursor:pointer; font-size:18px; transition:all 0.15s;
+  }
+  .ctrl-btn:active { transform:scale(0.9); background:rgba(255,255,255,0.15); }
+  .ctrl-btn.flash-on { background:rgba(255,195,0,0.25); border-color:var(--ember); }
+  #points-btn { flex-direction:column; gap:1px; font-size:11px; color:var(--ember); }
+  #points-btn span:last-child { font-size:7px; color:var(--text-dim); }
+  #shutter-btn {
+    width:72px; height:72px; border-radius:50%;
+    background:white; border:4px solid rgba(255,255,255,0.3);
+    cursor:pointer; position:relative; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center; transition:all 0.12s;
+  }
+  #shutter-btn:active { transform:scale(0.9); }
+  #shutter-btn::before { content:''; width:54px; height:54px; border-radius:50%; background:white; position:absolute; transition:background 0.3s; }
+  #shutter-btn.fire-mode::before { background:var(--fire); }
+  #shutter-btn.fire-mode { border-color:var(--fire); box-shadow:0 0 20px rgba(255,69,0,0.5); }
+  #shutter-btn.done-mode::before { background:var(--green); }
+  #shutter-btn.done-mode { border-color:var(--green); box-shadow:0 0 14px rgba(57,255,20,0.3); }
+  #shutter-fire-ring { position:absolute; inset:-8px; border-radius:50%; border:2px solid var(--fire); opacity:0; animation:shutterRing 2.5s ease-in-out infinite; }
+  @keyframes shutterRing { 0%{opacity:0;transform:scale(0.9);} 30%{opacity:0.5;} 100%{opacity:0;transform:scale(1.3);} }
+
+  /* Sleep */
+  #sleep-overlay {
+    position:absolute; inset:0; z-index:8;
+    background:linear-gradient(160deg,#0a0f1e 0%,#111827 100%);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:16px;
+    opacity:0; pointer-events:none; transition:opacity 0.8s;
+  }
+  #sleep-overlay.active { opacity:1; pointer-events:all; }
+  .sleep-moon { font-size:48px; animation:moonGlow 3s ease-in-out infinite alternate; }
+  @keyframes moonGlow { from{filter:brightness(0.8) drop-shadow(0 0 8px #4A7BFF);} to{filter:brightness(1.1) drop-shadow(0 0 20px #4A7BFF);} }
+  .sleep-title { font-family:'Bebas Neue',sans-serif; font-size:36px; letter-spacing:4px; color:var(--sleep-accent); }
+  .sleep-desc { font-size:11px; color:rgba(255,255,255,0.35); letter-spacing:1px; text-align:center; line-height:1.9; }
+  .sleep-resume { font-size:12px; color:var(--sleep-accent); letter-spacing:2px; padding:10px 24px; border:1px solid rgba(74,123,255,0.4); border-radius:4px; margin-top:8px; }
+  .star { position:absolute; width:2px; height:2px; border-radius:50%; background:white; animation:twinkle var(--dur,2s) ease-in-out infinite alternate; }
+  @keyframes twinkle { from{opacity:0.1;transform:scale(0.8);} to{opacity:0.8;transform:scale(1.2);} }
+
+  /* Flash */
+  #flash-effect { position:absolute; inset:0; background:white; z-index:100; opacity:0; pointer-events:none; }
+  #flash-effect.flash { animation:flashAnim 0.3s ease-out forwards; }
+  @keyframes flashAnim { 0%{opacity:1;} 100%{opacity:0;} }
+
+  /* Dead */
+  #dead-overlay {
+    position:absolute; inset:0; z-index:30;
+    background:rgba(0,0,0,0.9);
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px;
+    opacity:0; pointer-events:none; transition:opacity 0.5s;
+  }
+  #dead-overlay.show { opacity:1; pointer-events:all; }
+  .dead-icon { font-size:56px; filter:grayscale(1); }
+  .dead-title { font-family:'Bebas Neue',sans-serif; font-size:42px; letter-spacing:4px; color:var(--red); text-align:center; }
+  .dead-desc { font-size:11px; color:var(--text-dim); text-align:center; line-height:1.8; }
+  .dead-restart { margin-top:8px; padding:12px 32px; background:var(--fire); border:none; border-radius:4px; color:white; font-family:'IBM Plex Mono',monospace; font-size:13px; font-weight:600; letter-spacing:2px; cursor:pointer; transition:all 0.15s; }
+  .dead-restart:active { transform:scale(0.97); }
+
+  /* Points panel */
+  #points-panel {
+    position:absolute; inset:0; z-index:20;
+    background:rgba(0,0,0,0.96); padding:20px 16px;
+    display:flex; flex-direction:column; gap:15px;
+    opacity:0; pointer-events:none; transition:opacity 0.3s; overflow-y:auto;
+  }
+  #points-panel.show { opacity:1; pointer-events:all; }
+  .panel-header { display:flex; justify-content:space-between; align-items:center; }
+  .panel-title { font-family:'Bebas Neue',sans-serif; font-size:28px; letter-spacing:3px; color:var(--ember); }
+  .panel-close { width:36px; height:36px; border-radius:50%; background:rgba(255,255,255,0.08); border:none; color:var(--text); font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; }
+  .stat-card { background:var(--smoke2); border:1px solid rgba(255,255,255,0.06); border-radius:8px; padding:14px 16px; }
+  .stat-label { font-size:9px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:6px; }
+  .stat-value { font-family:'Bebas Neue',sans-serif; font-size:36px; color:var(--text); line-height:1; }
+  .stat-unit { font-size:13px; color:var(--text-dim); }
+  .milestone-row { display:flex; gap:8px; }
+  .milestone { flex:1; background:var(--smoke2); border:1px solid rgba(255,255,255,0.06); border-radius:6px; padding:10px; text-align:center; }
+  .milestone.achieved { border-color:var(--ember); background:rgba(255,195,0,0.06); }
+  .milestone-icon { font-size:20px; }
+  .milestone-day { font-size:10px; color:var(--text-dim); margin-top:4px; letter-spacing:1px; }
+  .milestone.achieved .milestone-day { color:var(--ember); }
+  .rule-item { display:flex; gap:10px; align-items:flex-start; padding:10px 0; border-bottom:1px solid rgba(255,255,255,0.04); }
+  .rule-icon { font-size:15px; flex-shrink:0; }
+  .rule-text { font-size:11px; color:rgba(255,255,255,0.5); line-height:1.6; }
+  .rule-text strong { color:var(--text); }
+
+  /* Toast */
+  #toast {
+    position:absolute; top:74px; left:50%;
+    transform:translateX(-50%) translateY(-14px);
+    z-index:60; background:rgba(12,12,12,0.97);
+    border:1px solid rgba(255,255,255,0.1); border-radius:20px;
+    padding:8px 16px; font-size:11px; letter-spacing:1px;
+    white-space:nowrap; opacity:0; transition:all 0.3s;
+    max-width:90vw; overflow:hidden; text-overflow:ellipsis;
+  }
+  #toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+  /* Demo bar */
+  #demo-bar { position:absolute; bottom:3px; left:0; right:0; z-index:70; display:flex; justify-content:center; gap:5px; }
+  .demo-btn { font-size:8px; letter-spacing:1px; padding:3px 7px; background:rgba(255,255,255,0.04); border:1px solid rgba(255,255,255,0.07); border-radius:3px; color:rgba(255,255,255,0.22); cursor:pointer; text-transform:uppercase; }
+  .demo-btn:active { background:rgba(255,255,255,0.1); color:rgba(255,255,255,0.6); }
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ══════════ JOIN SCREEN ══════════ -->
+<div id="join-screen">
+  <div class="join-logo">🔥</div>
+  <div class="join-title">Biệt Đội Giữ Lửa</div>
+  <div class="join-sub">4 người · 90 phút · 1 ngọn lửa</div>
+
+  <div class="join-field">
+    <label class="join-label">Tên của bạn</label>
+    <input class="join-input" id="name-input" placeholder="Nhập tên hiển thị..." maxlength="16" autocomplete="off">
+  </div>
+
+  <div class="avatar-picker">
+    <label class="join-label">Chọn Avatar</label>
+    <div class="avatar-row" id="avatar-row">
+      <div class="avatar-opt selected" data-av="😊">😊</div>
+      <div class="avatar-opt" data-av="🐼">🐼</div>
+      <div class="avatar-opt" data-av="🦊">🦊</div>
+      <div class="avatar-opt" data-av="🐻">🐻</div>
+      <div class="avatar-opt" data-av="🦁">🦁</div>
+      <div class="avatar-opt" data-av="🐯">🐯</div>
+      <div class="avatar-opt" data-av="🐺">🐺</div>
+      <div class="avatar-opt" data-av="🦅">🦅</div>
+    </div>
+  </div>
+
+  <div class="join-field">
+    <label class="join-label">Mã phòng (để tham gia phòng có sẵn)</label>
+    <input class="join-input" id="room-input" placeholder="VD: FIRE-2847" maxlength="12" autocomplete="off" style="text-transform:uppercase;letter-spacing:3px;">
+  </div>
+
+  <button class="join-btn" onclick="joinRoom()">🔥 Vào Phòng</button>
+
+  <div class="join-divider"><span>HOẶC</span></div>
+  <button class="create-btn" onclick="createRoom()">✨ Tạo phòng mới</button>
+
+  <div id="room-display">
+    <div class="rd-label">MÃ PHÒNG CỦA BẠN</div>
+    <div class="rd-code" id="generated-code">----</div>
+    <div class="rd-hint">Chia sẻ mã này cho đồng đội · Nhấn "Vào Phòng" để tiếp tục</div>
+  </div>
+  <div id="join-toast"></div>
+</div>
+
+<!-- ══════════ MAIN APP ══════════ -->
+<div id="main-app">
+
+  <!-- Camera background -->
+  <div id="camera-layer">
+    <div id="camera-bg"></div>
+    <video id="video-feed" autoplay muted playsinline></video>
+  </div>
+
+  <!-- Viewfinder -->
+  <div id="viewfinder">
+    <div class="vf-corner tl"></div>
+    <div class="vf-corner tr"></div>
+    <div class="vf-corner bl"></div>
+    <div class="vf-corner br"></div>
+  </div>
+
+  <!-- Top HUD -->
+  <div id="top-hud">
+    <div id="fire-count">
+      <span class="fire-emoji">🔥</span>
+      <div>
+        <div class="fire-number" id="fire-number">0</div>
+        <div class="fire-label">ngày liên tiếp</div>
+      </div>
+    </div>
+    <div id="top-right">
+      <div id="live-time">--:--:--</div>
+      <div id="mode-badge">⚡ ACTIVE</div>
+    </div>
+  </div>
+
+  <!-- Room chip -->
+  <div id="room-chip">PHÒNG: <span id="room-chip-code">----</span></div>
+
+  <!-- Countdown Ring -->
+  <div id="countdown-area">
+    <div id="countdown-ring-wrap">
+      <svg id="countdown-svg" viewBox="0 0 110 110">
+        <circle id="ring-bg" cx="55" cy="55" r="47.5"/>
+        <circle id="ring-progress" cx="55" cy="55" r="47.5"/>
+      </svg>
+      <div id="countdown-inner">
+        <div id="countdown-time">90:00</div>
+        <div id="countdown-sub">còn lại</div>
+      </div>
+    </div>
+    <div id="countdown-label">CHỤP TIẾP THEO</div>
+  </div>
+
+  <!-- Done badge -->
+  <div id="done-badge">
+    <div class="done-check">✅</div>
+    <div class="done-text">Đã chụp! Chờ đồng đội</div>
+  </div>
+
+  <!-- Sleep Overlay -->
+  <div id="sleep-overlay">
+    <div class="sleep-moon">🌙</div>
+    <div class="sleep-title">Chế Độ Ngủ</div>
+    <div class="sleep-desc">
+      Sau 20:00 — ngọn lửa được bảo vệ<br>
+      Hệ thống mở lại lúc <strong style="color:var(--sleep-accent)">06:00 sáng mai</strong>
+    </div>
+    <div class="sleep-resume">🌅 Nghỉ ngơi đã...</div>
+  </div>
+
+  <!-- Flash -->
+  <div id="flash-effect"></div>
+
+  <!-- Dead Overlay -->
+  <div id="dead-overlay">
+    <div class="dead-icon">💀</div>
+    <div class="dead-title">LỬA ĐÃ TẮT</div>
+    <div class="dead-desc" id="dead-desc">Một thành viên đã quên chụp ảnh<br>Streak của cả đội về 0 rồi 😔</div>
+    <button class="dead-restart" onclick="restartFire()">🔥 Thắp Lại Lửa</button>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast"></div>
+
+  <!-- ══ PHOTO GRID: 4 cells ══ -->
+  <div id="photo-grid">
+    <!-- Cell 0: ME — live camera + tap to shoot -->
+    <div class="photo-cell me-cell" id="cell-0" onclick="handleMyCellClick()">
+      <video id="my-cell-video" autoplay muted playsinline></video>
+      <div id="my-cell-overlay">
+        <div class="my-cam-icon">📷</div>
+        <div class="my-cam-label">Chạm để bật cam</div>
+      </div>
+      <div class="me-badge" id="my-name-badge">BẠN</div>
+    </div>
+    <!-- Cells 1–3: Teammates (dynamic) -->
+    <div class="photo-cell cell-empty" id="cell-1">
+      <div class="cell-placeholder">
+        <div class="cell-avatar" id="av-1">👤</div>
+        <div class="cell-name" id="nm-1">Chờ...</div>
+        <div class="cell-status" id="st-1"></div>
+      </div>
+      <img class="cell-photo-img" id="ph-1" src="" alt="">
+      <div class="cell-check">✓</div>
+      <div class="pulse-ring"></div>
+    </div>
+    <div class="photo-cell cell-empty" id="cell-2">
+      <div class="cell-placeholder">
+        <div class="cell-avatar" id="av-2">👤</div>
+        <div class="cell-name" id="nm-2">Chờ...</div>
+        <div class="cell-status" id="st-2"></div>
+      </div>
+      <img class="cell-photo-img" id="ph-2" src="" alt="">
+      <div class="cell-check">✓</div>
+      <div class="pulse-ring"></div>
+    </div>
+    <div class="photo-cell cell-empty" id="cell-3">
+      <div class="cell-placeholder">
+        <div class="cell-avatar" id="av-3">👤</div>
+        <div class="cell-name" id="nm-3">Chờ...</div>
+        <div class="cell-status" id="st-3"></div>
+      </div>
+      <img class="cell-photo-img" id="ph-3" src="" alt="">
+      <div class="cell-check">✓</div>
+      <div class="pulse-ring"></div>
+    </div>
+  </div>
+
+  <!-- Bottom Panel -->
+  <div id="bottom-panel">
+    <div id="controls-row">
+      <div class="ctrl-btn" id="flash-btn" onclick="toggleFlash()"><span id="flash-icon">⚡</span></div>
+      <div class="ctrl-btn" onclick="flipCamera()">🔄</div>
+      <div id="shutter-btn" onclick="takePhoto()"><div id="shutter-fire-ring"></div></div>
+      <div class="ctrl-btn" onclick="toggleCamera()">📷</div>
+      <div class="ctrl-btn" id="points-btn" onclick="togglePoints()"><span>🏆</span><span>ĐIỂM</span></div>
+    </div>
+  </div>
+
+  <!-- Points Panel -->
+  <div id="points-panel">
+    <div class="panel-header">
+      <div class="panel-title">🏆 Bảng Thành Tích</div>
+      <button class="panel-close" onclick="togglePoints()">✕</button>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">🔥 Streak Hiện Tại</div>
+      <div class="stat-value"><span id="panel-fire">0</span> <span class="stat-unit">ngày</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">📸 Tổng Ảnh Đã Chụp</div>
+      <div class="stat-value" id="panel-total">0 <span class="stat-unit">ảnh</span></div>
+    </div>
+    <div class="stat-label" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;">Cột Mốc</div>
+    <div class="milestone-row">
+      <div class="milestone" id="ms-3"><div class="milestone-icon">🥉</div><div class="milestone-day">Ngày 3</div></div>
+      <div class="milestone" id="ms-7"><div class="milestone-icon">🥈</div><div class="milestone-day">Ngày 7</div></div>
+      <div class="milestone" id="ms-14"><div class="milestone-icon">🥇</div><div class="milestone-day">Ngày 14</div></div>
+      <div class="milestone" id="ms-30"><div class="milestone-icon">💎</div><div class="milestone-day">Ngày 30</div></div>
+    </div>
+    <div class="stat-label" style="font-size:9px;letter-spacing:2px;text-transform:uppercase;">Luật Chơi</div>
+    <div class="stat-card">
+      <div class="rule-item"><span class="rule-icon">🔥</span><div class="rule-text">Chụp ảnh mỗi <strong>90 phút</strong> để giữ lửa cháy mãi</div></div>
+      <div class="rule-item"><span class="rule-icon">💀</span><div class="rule-text">Nếu <strong>bất kỳ ai</strong> quên — lửa cả đội tắt về 0</div></div>
+      <div class="rule-item"><span class="rule-icon">🌙</span><div class="rule-text">Sau <strong>20:00</strong> — chế độ ngủ, không cần chụp</div></div>
+      <div class="rule-item" style="border:none"><span class="rule-icon">🌅</span><div class="rule-text">Hệ thống tự mở lại lúc <strong>06:00</strong> sáng hôm sau</div></div>
+    </div>
+  </div>
+
+  <!-- Demo Bar -->
+  <div id="demo-bar">
+    <div class="demo-btn" onclick="demoMemberJoin()">👤+Join</div>
+    <div class="demo-btn" onclick="demoMemberPhoto()">📸 Chụp</div>
+    <div class="demo-btn" onclick="demoUrgent()">⏰ Gấp</div>
+    <div class="demo-btn" onclick="demoSleep()">🌙 Ngủ</div>
+    <div class="demo-btn" onclick="demoDead()">💀 Tắt</div>
+    <div class="demo-btn" onclick="exitSleep()">🌅 Dậy</div>
+  </div>
+
+</div><!-- end main-app -->
+</div><!-- end app -->
+
+<script>
+// ═══════════════════════════════════════
+//  STATE
+// ═══════════════════════════════════════
+const state = {
+  myName: '',
+  myAvatar: '😊',
+  roomCode: '',
+  fireCount: 0,
+  totalPhotos: 0,
+  isSleepMode: false,
+  isFlashOn: false,
+  isFrontCam: true,
+  totalSeconds: 90 * 60,
+  remainSeconds: 90 * 60,
+  myDone: false,           // ← KEY FIX: countdown stops when true
+  cameraStream: null,
+  isCameraOn: false,
+  teammates: [             // slots 1–3
+    { name:'', avatar:'👤', joined:false, done:false, photoUrl:'' },
+    { name:'', avatar:'👤', joined:false, done:false, photoUrl:'' },
+    { name:'', avatar:'👤', joined:false, done:false, photoUrl:'' },
+  ],
+  demoJoinIdx: 0,
+};
+
+const DEMO_POOL = [
+  { name:'Minh', avatar:'🐼' },
+  { name:'Hà',   avatar:'🦊' },
+  { name:'Tuấn', avatar:'🐻' },
+];
+
+// ═══════════════════════════════════════
+//  JOIN SCREEN
+// ═══════════════════════════════════════
+document.querySelectorAll('.avatar-opt').forEach(el => {
+  el.addEventListener('click', () => {
+    document.querySelectorAll('.avatar-opt').forEach(a => a.classList.remove('selected'));
+    el.classList.add('selected');
+    state.myAvatar = el.dataset.av;
+  });
+});
+
+document.getElementById('room-input').addEventListener('input', e => {
+  e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9\-]/g,'');
+});
+
+function generateCode() {
+  const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+  let c = 'FIRE-';
+  for (let i=0;i<4;i++) c += chars[Math.floor(Math.random()*chars.length)];
+  return c;
+}
+
+function createRoom() {
+  const name = document.getElementById('name-input').value.trim();
+  if (!name) { showJoinToast('⚠️ Nhập tên của bạn trước nhé!'); return; }
+  const code = generateCode();
+  state.roomCode = code;
+  document.getElementById('generated-code').textContent = code;
+  document.getElementById('room-display').style.display = 'block';
+  document.getElementById('room-input').value = code;
+  showJoinToast(`✨ Phòng ${code} đã tạo! Chia sẻ cho bạn bè`);
+}
+
+function joinRoom() {
+  const name = document.getElementById('name-input').value.trim();
+  const code = document.getElementById('room-input').value.trim().toUpperCase();
+  if (!name) { showJoinToast('⚠️ Nhập tên của bạn trước nhé!'); return; }
+  if (!code)  { showJoinToast('⚠️ Nhập mã phòng hoặc tạo phòng mới!'); return; }
+
+  state.myName = name;
+  state.myAvatar = document.querySelector('.avatar-opt.selected')?.dataset.av || '😊';
+  state.roomCode = code;
+
+  // Switch screens
+  document.getElementById('join-screen').classList.add('hidden');
+  document.getElementById('main-app').classList.add('active');
+
+  // Init UI
+  document.getElementById('room-chip-code').textContent = code;
+  document.getElementById('my-name-badge').textContent = name.length > 6 ? name.slice(0,5)+'…' : name;
+  document.getElementById('fire-number').textContent = state.fireCount;
+
+  initCountdownUI();
+  setInterval(updateClock, 1000);
+  setInterval(updateCountdown, 1000);
+  updateClock();
+
+  // Auto start camera
+  startCamera();
+  showToast(`🔥 Chào ${name}! Đã vào phòng ${code}`);
+}
+
+let joinToastTimer;
+function showJoinToast(msg) {
+  const t = document.getElementById('join-toast');
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(joinToastTimer);
+  joinToastTimer = setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  const pad = n => String(n).padStart(2,'0');
+  document.getElementById('live-time').textContent = `${pad(now.getHours())}:${pad(now.getMinutes())}:${pad(now.getSeconds())}`;
+  const h = now.getHours();
+  if (!state.isSleepMode && (h >= 20 || h < 6)) enterSleep();
+}
+
+// ═══════════════════════════════════════
+//  COUNTDOWN  ← FIX: stops when myDone
+// ═══════════════════════════════════════
+const circumference = 2 * Math.PI * 47.5; // ≈ 298.45
+
+function initCountdownUI() {
+  const ring = document.getElementById('ring-progress');
+  ring.style.strokeDasharray = circumference;
+  ring.style.strokeDashoffset = 0;
+  refreshCountdownDisplay();
+}
+
+function refreshCountdownDisplay() {
+  const mins = Math.floor(state.remainSeconds / 60);
+  const secs = state.remainSeconds % 60;
+  document.getElementById('countdown-time').textContent =
+    `${String(mins).padStart(2,'0')}:${String(secs).padStart(2,'0')}`;
+
+  const progress = state.remainSeconds / state.totalSeconds;
+  const offset = circumference * (1 - progress);
+  const ring = document.getElementById('ring-progress');
+  ring.style.strokeDashoffset = offset;
+
+  const isUrgent = !state.myDone && state.remainSeconds < 5 * 60;
+  ring.style.stroke = isUrgent ? 'var(--red)' : 'var(--fire)';
+  ring.style.filter = isUrgent ? 'drop-shadow(0 0 8px var(--red))' : 'drop-shadow(0 0 6px var(--fire))';
+
+  const area = document.getElementById('countdown-area');
+  if (isUrgent) area.classList.add('urgent-pulse');
+  else area.classList.remove('urgent-pulse');
+}
+
+function updateCountdown() {
+  if (state.isSleepMode) return;
+  if (state.myDone) return;   // ← FIX: paused after shooting
+
+  state.remainSeconds = Math.max(0, state.remainSeconds - 1);
+  refreshCountdownDisplay();
+
+  if (state.remainSeconds === 0) {
+    triggerFireDead('Bạn đã hết giờ chụp ảnh 😔');
+  }
+}
+
+// ═══════════════════════════════════════
+//  CAMERA
+// ═══════════════════════════════════════
+async function toggleCamera() {
+  if (state.isCameraOn) { stopCamera(); showToast('📷 Camera đã tắt'); }
+  else await startCamera();
+}
+
+async function startCamera() {
+  try {
+    if (state.cameraStream) state.cameraStream.getTracks().forEach(t => t.stop());
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: state.isFrontCam ? 'user' : 'environment', width:{ideal:1280}, height:{ideal:720} }
+    });
+    state.cameraStream = stream;
+    state.isCameraOn = true;
+
+    // BG video
+    const vid = document.getElementById('video-feed');
+    vid.srcObject = stream; vid.classList.add('active');
+    vid.style.transform = state.isFrontCam ? 'scaleX(-1)' : 'scaleX(1)';
+
+    // Grid cell video
+    const myVid = document.getElementById('my-cell-video');
+    myVid.srcObject = stream;
+    myVid.style.transform = state.isFrontCam ? 'scaleX(-1)' : 'scaleX(1)';
+
+    document.getElementById('my-cell-overlay').classList.add('hidden');
+    if (!state.myDone) document.getElementById('shutter-btn').classList.add('fire-mode');
+  } catch {
+    showToast('⚠️ Cho phép Camera để tiếp tục');
+  }
+}
+
+function stopCamera() {
+  if (state.cameraStream) state.cameraStream.getTracks().forEach(t => t.stop());
+  state.cameraStream = null; state.isCameraOn = false;
+  document.getElementById('video-feed').srcObject = null;
+  document.getElementById('video-feed').classList.remove('active');
+  document.getElementById('my-cell-video').srcObject = null;
+  document.getElementById('my-cell-overlay').classList.remove('hidden');
+  document.getElementById('shutter-btn').classList.remove('fire-mode','done-mode');
+}
+
+async function flipCamera() {
+  state.isFrontCam = !state.isFrontCam;
+  if (state.isCameraOn) await startCamera();
+  showToast(state.isFrontCam ? '🤳 Cam trước' : '📸 Cam sau');
+}
+
+function toggleFlash() {
+  state.isFlashOn = !state.isFlashOn;
+  document.getElementById('flash-btn').classList.toggle('flash-on', state.isFlashOn);
+  if (state.cameraStream) {
+    const track = state.cameraStream.getVideoTracks()[0];
+    if (track?.getCapabilities?.()?.torch) {
+      track.applyConstraints({ advanced:[{ torch:state.isFlashOn }] }).catch(()=>{});
+    }
+  }
+  showToast(state.isFlashOn ? '⚡ Flash BẬT' : '⚡ Flash TẮT');
+}
+
+function handleMyCellClick() {
+  if (!state.isCameraOn) { startCamera(); return; }
+  if (!state.myDone) takePhoto();
+  else showToast('✅ Bạn đã chụp rồi! Chờ đồng đội...');
+}
+
+// ═══════════════════════════════════════
+//  TAKE PHOTO  ← FIX: stops countdown
+// ═══════════════════════════════════════
+function takePhoto() {
+  if (state.isSleepMode) { showToast('🌙 Đang ngủ, nghỉ ngơi đã~'); return; }
+  if (state.myDone) { showToast('✅ Bạn đã chụp rồi! Chờ đồng đội...'); return; }
+
+  // Flash effect
+  const flash = document.getElementById('flash-effect');
+  flash.classList.add('flash');
+  setTimeout(() => flash.classList.remove('flash'), 350);
+
+  // Capture frame from live video
+  let photoUrl = '';
+  if (state.isCameraOn) {
+    const video = document.getElementById('my-cell-video');
+    const canvas = document.createElement('canvas');
+    canvas.width = 200; canvas.height = 200;
+    const ctx = canvas.getContext('2d');
+    if (state.isFrontCam) { ctx.translate(200,0); ctx.scale(-1,1); }
+    ctx.drawImage(video, 0, 0, 200, 200);
+    photoUrl = canvas.toDataURL('image/jpeg', 0.85);
+  }
+
+  // Mark done → countdown stops ticking
+  state.myDone = true;
+  state.totalPhotos++;
+
+  // Show snapshot in my cell
+  const cell0 = document.getElementById('cell-0');
+  if (photoUrl) {
+    const snap = document.createElement('img');
+    snap.className = 'cell-snapshot';
+    snap.src = photoUrl;
+    cell0.insertBefore(snap, cell0.querySelector('#my-cell-overlay'));
+    document.getElementById('my-cell-video').style.opacity = '0';
+    document.getElementById('my-cell-overlay').classList.add('hidden');
+  }
+  cell0.style.borderColor = 'var(--green)';
+  cell0.style.boxShadow = '0 0 14px rgba(57,255,20,0.3)';
+
+  // Shutter → done
+  const shutter = document.getElementById('shutter-btn');
+  shutter.classList.remove('fire-mode');
+  shutter.classList.add('done-mode');
+
+  // Swap countdown ↔ done badge
+  document.getElementById('countdown-area').classList.add('done-state');
+  document.getElementById('done-badge').classList.add('show');
+
+  showToast('✅ Ảnh đã ghi nhận! Chờ đồng đội...');
+  checkAllDone();
+}
+
+// ═══════════════════════════════════════
+//  TEAMMATE MANAGEMENT  ← FIX: proper dynamic render
+// ═══════════════════════════════════════
+function renderCell(slot) {
+  const tm = state.teammates[slot - 1];
+  const cell = document.getElementById(`cell-${slot}`);
+  const ph   = document.getElementById(`ph-${slot}`);
+  if (!cell) return;
+
+  // Reset classes
+  cell.className = 'photo-cell';
+
+  if (!tm.joined) {
+    cell.classList.add('cell-empty');
+    document.getElementById(`av-${slot}`).textContent = '👤';
+    document.getElementById(`nm-${slot}`).textContent = `Slot ${slot}`;
+    document.getElementById(`st-${slot}`).textContent = '';
+    cell.querySelector('.cell-placeholder').style.display = '';
+    ph.src = ''; ph.style.display = 'none';
+    return;
+  }
+
+  document.getElementById(`av-${slot}`).textContent = tm.avatar;
+  document.getElementById(`nm-${slot}`).textContent = tm.name;
+
+  if (tm.done) {
+    cell.classList.add('cell-done');
+    document.getElementById(`st-${slot}`).textContent = '✅ Đã chụp';
+    if (tm.photoUrl) { ph.src = tm.photoUrl; }
+  } else {
+    cell.classList.add('cell-waiting');
+    document.getElementById(`st-${slot}`).textContent = '⏳ Chờ chụp';
+    ph.style.display = 'none';
+  }
+}
+
+function addTeammate(name, avatar) {
+  const idx = state.teammates.findIndex(t => !t.joined);
+  if (idx === -1) { showToast('Phòng đã đủ 4 người!'); return; }
+  state.teammates[idx] = { name, avatar, joined:true, done:false, photoUrl:'' };
+  renderCell(idx + 1);
+  showToast(`${avatar} ${name} đã vào phòng!`);
+}
+
+function teammatePhoto(slot, photoUrl) {
+  const idx = slot - 1;
+  if (!state.teammates[idx].joined) return;
+  state.teammates[idx].done = true;
+  state.teammates[idx].photoUrl = photoUrl;
+  renderCell(slot);
+  const tm = state.teammates[idx];
+  showToast(`📸 ${tm.avatar} ${tm.name} đã chụp!`);
+  checkAllDone();
+}
+
+function checkAllDone() {
+  const joinedTeam = state.teammates.filter(t => t.joined);
+  if (!state.myDone) return;
+  if (joinedTeam.length === 0) return;
+  if (!joinedTeam.every(t => t.done)) return;
+
+  setTimeout(() => {
+    state.fireCount++;
+    document.getElementById('fire-number').textContent = state.fireCount;
+    updateMilestones();
+    showToast(`🔥🔥 Cả đội đã chụp! Streak: ${state.fireCount} ngày!`);
+    setTimeout(startNewRound, 3500);
+  }, 700);
+}
+
+function startNewRound() {
+  state.myDone = false;
+  state.remainSeconds = state.totalSeconds;
+  state.teammates.forEach(t => { if (t.joined) { t.done = false; t.photoUrl = ''; } });
+
+  // Reset my cell
+  const cell0 = document.getElementById('cell-0');
+  const snap = cell0.querySelector('.cell-snapshot');
+  if (snap) snap.remove();
+  document.getElementById('my-cell-video').style.opacity = '1';
+  cell0.style.borderColor = '';
+  cell0.style.boxShadow = '';
+  if (state.isCameraOn) document.getElementById('my-cell-overlay').classList.add('hidden');
+  else document.getElementById('my-cell-overlay').classList.remove('hidden');
+
+  // Reset shutter
+  document.getElementById('shutter-btn').classList.remove('done-mode');
+  if (state.isCameraOn) document.getElementById('shutter-btn').classList.add('fire-mode');
+
+  // Reset countdown UI
+  document.getElementById('countdown-area').classList.remove('done-state');
+  document.getElementById('done-badge').classList.remove('show');
+  refreshCountdownDisplay();
+
+  for (let i=1; i<=3; i++) renderCell(i);
+  showToast('🔄 Vòng mới bắt đầu! Chụp ảnh trong 90 phút nhé');
+}
+
+function triggerFireDead(reason) {
+  document.getElementById('dead-desc').innerHTML = `${reason}<br>Streak của cả đội về 0 rồi 😔`;
+  document.getElementById('dead-overlay').classList.add('show');
+  state.fireCount = 0;
+  document.getElementById('fire-number').textContent = '0';
+  updateMilestones();
+}
+
+// ═══════════════════════════════════════
+//  SLEEP MODE
+// ═══════════════════════════════════════
+function enterSleep() {
+  state.isSleepMode = true;
+  document.getElementById('sleep-overlay').classList.add('active');
+  document.getElementById('mode-badge').textContent = '🌙 SLEEP';
+  document.getElementById('mode-badge').classList.add('sleep');
+  const overlay = document.getElementById('sleep-overlay');
+  if (!overlay.querySelector('.star')) {
+    for (let i=0;i<28;i++) {
+      const s = document.createElement('div');
+      s.className = 'star';
+      s.style.cssText = `left:${Math.random()*100}%;top:${Math.random()*100}%;--dur:${1+Math.random()*3}s;animation-delay:${Math.random()*2}s;`;
+      overlay.appendChild(s);
+    }
+  }
+}
+
+function exitSleep() {
+  state.isSleepMode = false;
+  document.getElementById('sleep-overlay').classList.remove('active');
+  document.getElementById('mode-badge').textContent = '⚡ ACTIVE';
+  document.getElementById('mode-badge').classList.remove('sleep');
+  startNewRound();
+  showToast('🌅 Buổi sáng bắt đầu! Hãy chụp ảnh đầu tiên~');
+}
+
+// ═══════════════════════════════════════
+//  POINTS PANEL
+// ═══════════════════════════════════════
+function updateMilestones() {
+  const fc = state.fireCount;
+  [3,7,14,30].forEach(d => {
+    document.getElementById(`ms-${d}`)?.classList.toggle('achieved', fc >= d);
+  });
+}
+
+function togglePoints() {
+  const p = document.getElementById('points-panel');
+  p.classList.toggle('show');
+  document.getElementById('panel-fire').textContent = state.fireCount;
+  document.getElementById('panel-total').innerHTML = `${state.totalPhotos} <span class="stat-unit">ảnh</span>`;
+  updateMilestones();
+}
+
+// ═══════════════════════════════════════
+//  RESTART
+// ═══════════════════════════════════════
+function restartFire() {
+  document.getElementById('dead-overlay').classList.remove('show');
+  state.myDone = false;
+  state.remainSeconds = state.totalSeconds;
+  state.teammates.forEach(t => { t.done = false; t.photoUrl = ''; });
+  document.getElementById('countdown-area').classList.remove('done-state');
+  document.getElementById('done-badge').classList.remove('show');
+  document.getElementById('shutter-btn').classList.remove('done-mode');
+  if (state.isCameraOn) document.getElementById('shutter-btn').classList.add('fire-mode');
+  for (let i=1;i<=3;i++) renderCell(i);
+  refreshCountdownDisplay();
+  showToast('🔥 Lửa mới được thắp lên! Cùng cố gắng!');
+}
+
+// ═══════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  if (!t) return;
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ═══════════════════════════════════════
+//  DEMO HELPERS
+// ═══════════════════════════════════════
+function demoMemberJoin() {
+  const p = DEMO_POOL[state.demoJoinIdx % DEMO_POOL.length];
+  state.demoJoinIdx++;
+  addTeammate(p.name, p.avatar);
+}
+
+function demoMemberPhoto() {
+  const idx = state.teammates.findIndex(t => t.joined && !t.done);
+  if (idx === -1) { showToast('Chưa có thành viên nào để demo!'); return; }
+  // Generate colorful fake photo
+  const canvas = document.createElement('canvas');
+  canvas.width = 200; canvas.height = 200;
+  const ctx = canvas.getContext('2d');
+  const cols = ['#FF6B6B','#4ECDC4','#45B7D1','#96CEB4','#DDA0DD','#F0E68C'];
+  ctx.fillStyle = cols[Math.floor(Math.random()*cols.length)];
+  ctx.fillRect(0,0,200,200);
+  ctx.font = '72px serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.fillText(state.teammates[idx].avatar, 100, 100);
+  teammatePhoto(idx+1, canvas.toDataURL());
+}
+
+function demoUrgent() { state.remainSeconds = 90; refreshCountdownDisplay(); showToast('⏰ Còn 90 giây!'); }
+function demoSleep() { enterSleep(); }
+function demoDead() { triggerFireDead('Một thành viên đã quên chụp ảnh'); }
+</script>
+</body>
+</html>
