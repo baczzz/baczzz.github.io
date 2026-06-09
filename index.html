@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Quiz Generator — Hệ Thống Tạo Đề Tiếng Anh Thông Minh</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+  <style>
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --color-bg-main: #f8fafc;
+      --color-bg-card: #ffffff;
+      --color-bg-sub: #f1f5f9;
+      --color-text-main: #0f172a;
+      --color-text-sub: #475569;
+      --color-text-muted: #94a3b8;
+      --color-border: #e2e8f0;
+      --border-radius-lg: 12px;
+      --border-radius-md: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background: var(--color-bg-main); color: var(--color-text-main); line-height: 1.5; padding: 1.5rem; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    header { margin-bottom: 2rem; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem; }
+    header h1 { font-size: 1.5rem; font-weight: 600; color: var(--color-text-main); display: flex; align-items: center; gap: 8px; }
+    header p { font-size: 14px; color: var(--color-text-sub); margin-top: 4px; }
+
+    .card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+    /* Badge styling */
+    .badge { display: inline-flex; align-items: center; font-size: 11px; padding: 4px 8px; border-radius: var(--border-radius-md); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-blue { background: #e0f2fe; color: #0369a1; }
+    .badge-teal { background: #ccfbf1; color: #0f766e; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-purple { background: #f3e8ff; color: #7e22ce; }
+
+    /* Button styling */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); background: var(--color-bg-card); color: var(--color-text-main); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: var(--color-bg-sub); border-color: var(--color-text-muted); }
+    .btn-primary { background: var(--color-text-main); color: #ffffff; border-color: transparent; }
+    .btn-primary:hover { background: #1e293b; opacity: 0.9; }
+    .btn-danger { background: #ef4444; color: white; border-color: transparent; }
+    .btn-danger:hover { background: #dc2626; }
+
+    select, input[type=number] { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); background: var(--color-bg-card); color: var(--color-text-main); font-size: 14px; outline: none; }
+    select:focus, input[type=number]:focus { border-color: var(--color-text-muted); }
+
+    /* Option styling */
+    .opt { width: 100%; text-align: left; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); cursor: pointer; font-size: 14px; margin-bottom: 8px; display: block; background: var(--color-bg-card); color: var(--color-text-main); transition: all 0.15s; font-family: var(--font-sans); }
+    .opt:hover { border-color: var(--color-text-sub); background: var(--color-bg-main); }
+    .opt.selected { border-color: #0284c7; background: #f0f9ff; color: #0369a1; font-weight: 500; }
+    .opt.correct { border-color: #10b981; background: #ecfdf5; color: #047857; font-weight: 500; }
+    .opt.wrong { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+
+    /* Layout workspace */
+    .exam-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .main-content { flex: 1; min-width: 0; }
+    .sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 1.5rem; }
+
+    .q-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: border-color 0.2s; }
+    .q-card.pinned { border-color: #f59e0b; background: #fffbeb; }
+    .q-num { font-size: 12px; font-weight: 600; color: var(--color-text-sub); }
+    .q-text { font-size: 15px; color: var(--color-text-main); font-weight: 500; margin-bottom: 1rem; line-height: 1.6; }
+
+    .pin-btn { font-size: 12px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); background: transparent; cursor: pointer; color: var(--color-text-sub); display: inline-flex; align-items: center; gap: 4px; }
+    .pin-btn.active { background: #fef3c7; color: #b45309; border-color: #f59e0b; }
+
+    /* Sidebar Grid navigation */
+    .sidebar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 1rem; }
+    .sidebar-num { height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); font-size: 13px; font-weight: 500; cursor: pointer; background: var(--color-bg-card); color: var(--color-text-sub); transition: all 0.15s; }
+    .sidebar-num:hover { border-color: var(--color-text-sub); }
+    .sidebar-num.answered { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+    .sidebar-num.pinned-s { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+    .sidebar-num.current { background: var(--color-text-main); color: #ffffff; border-color: var(--color-text-main); }
+
+    .timer { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-text-main); display: flex; align-items: center; gap: 6px; }
+    .timer.warning { color: #d97706; }
+    .timer.danger { color: #dc2626; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    /* Split Screen UI cho bài đọc hiểu */
+    .split-container { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); overflow: hidden; padding: 1rem; }
+    .split-left { flex: 1.1; overflow-y: auto; max-height: 550px; padding-right: 1.25rem; font-size: 15px; line-height: 1.8; color: var(--color-text-main); text-align: justify; }
+    .split-right { flex: 0.9; overflow-y: auto; max-height: 550px; padding-left: 0.25rem; }
+    .split-left::-webkit-scrollbar, .split-right::-webkit-scrollbar { width: 6px; }
+    .split-left::-webkit-scrollbar-thumb, .split-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    .passage-box { background: var(--color-bg-main); padding: 1.25rem; border-radius: var(--border-radius-md); border-left: 4px solid var(--color-text-muted); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .exam-layout { flex-direction: column-reverse; }
+      .sidebar { width: 100%; position: static; margin-bottom: 1.5rem; }
+      .sidebar-grid { grid-template-columns: repeat(8, 1fr); }
+      .split-container { flex-direction: column; }
+      .split-left, .split-right { max-height: none; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1><i class="ti ti-brain"></i> Smart Quiz Generator</h1>
+    <p>Hệ thống tự động lắp ráp và luyện đề trắc nghiệm Tiếng Anh thông minh</p>
+  </header>
+
+  <div id="app"></div>
+</div>
+
+<script>
+// --- NGÂN HÀNG CÂU HỎI CHUẨN (DATABASE) ---
+const DB = {
+  questions: [
+    {id:"q01",type:"ngu-phap",tags:["menh-de-tuong-phan"],level:"medium",question:"Although it was raining heavily, _____ they continued the match.",options:["but","however","yet","(delete 'they')"],answer:3,explanation:"'Although' đã là liên từ diễn tả sự tương phản rồi, trong mệnh đề chính không dùng thêm các liên từ như 'but' hay 'however' nữa. Ta chỉ cần dùng dấu phẩy ngăn cách. Do đó phương án đúng là lược bỏ từ 'they' không cần thiết."},
+    {id:"q02",type:"ngu-phap",tags:["dong-tu-khuyet-thieu"],level:"medium",question:"You _____ submit the form before 5 PM or your application will be rejected.",options:["should","must","might","would"],answer:1,explanation:"'Must' được dùng để chỉ một nghĩa vụ mang tính bắt buộc mạnh mẽ (obligation) từ bên ngoài hoặc quy định, phù hợp với ngữ cảnh có hậu quả bị loại hồ sơ nếu không thực hiện."},
+    {id:"q03",type:"ngu-phap",tags:["cau-dieu-kien"],level:"hard",question:"Had they invested earlier, they _____ a much higher return by now.",options:["would have earned","will have earned","would earn","had earned"],answer:0,explanation:"Đây là cấu trúc đảo ngữ của câu điều kiện loại 3 (diễn tả giả định trái ngược với quá khứ): Had + S + V3/Ved, S + would have + V3/Ved."},
+    {id:"q04",type:"tu-vung",tags:["collocations"],level:"medium",question:"The committee finally _____ a decision after three hours of debate.",options:["did","made","took","had"],answer:1,explanation:"Ta có cụm từ cố định (collocation): 'Make a decision' có nghĩa là đưa ra quyết định."},
+    {id:"q05",type:"tu-vung",tags:["phrasal-verb"],level:"medium",question:"The project was _____ due to lack of funding.",options:["called off","called up","called out","called for"],answer:0,explanation:"'Call off' nghĩa là hủy bỏ (cancel). Các từ còn lại: 'Call up' (gọi điện/triệu tập), 'Call out' (hét to/gọi cứu viện), 'Call for' (đòi hỏi/yêu cầu)."},
+    {id:"q06",type:"tu-vung",tags:["word-form"],level:"easy",question:"Her _____ speech moved the entire audience to tears.",options:["emotion","emotional","emotionally","emotionless"],answer:1,explanation:"Vị trí trống đứng trước danh từ 'speech' nên ta cần một tính từ bổ nghĩa cho nó. 'Emotional speech' nghĩa là bài phát biểu đầy cảm xúc."},
+    {id:"q07",type:"phat-am",tags:["phat-am-ed"],level:"easy",question:"Which word has the underlined part pronounced differently?",options:["talked", "walked", "naked", "booked"],answer:2,explanation:"Các từ 'talked', 'walked', 'booked' đều có đuôi -ed phát âm là /t/ theo quy tắc âm vô thanh. Riêng 'naked' là trường hợp đặc biệt (tính từ), đuôi -ed được phát âm là /ɪd/ (/ˈneɪkɪd/)."},
+    {id:"q08",type:"phat-am",tags:["trong-am"],level:"medium",question:"Which word has a different stress pattern?",options:["photograph","photography","photographer","photographic"],answer:0,explanation:"'Photograph' có trọng âm rơi vào âm tiết thứ nhất. Ba từ còn lại: 'photography' và 'photographer' rơi vào âm tiết thứ hai, 'photographic' rơi vào âm tiết thứ ba."},
+    {id:"q09",type:"tim-loi-sai",tags:["loi-subject-verb"],level:"hard",question:"The number of students who has failed the exam this semester are surprisingly high.",options:["The number of","students who has","failed the exam","are surprisingly high"],answer:3,explanation:"Chủ ngữ bắt đầu bằng cụm 'The number of + N số nhiều' luôn đi với động từ chia ở dạng số ít. Do đó, cụm 'are surprisingly high' phải sửa thành 'is surprisingly high'."},
+    {id:"q10",type:"tim-loi-sai",tags:["loi-article"],level:"medium",question:"She is an university student who dreams of becoming the doctor.",options:["an university","who dreams","of becoming","the doctor"],answer:0,explanation:"Từ 'university' mặc dù bắt đầu bằng nguyên âm 'u' nhưng phát âm là /ˌjuːnɪˈvɜːrsəti/ (bắt đầu bằng bán nguyên âm /j/). Do đó mạo từ đi kèm phải là 'a', không phải 'an'."},
+    {id:"g01_passage",type:"doc-hieu",group_id:"G01",is_passage:true,text:"Artificial intelligence is transforming the way we work and live. In healthcare, AI systems can now analyze medical images with accuracy comparable to experienced radiologists. In education, personalized learning platforms adapt to each student's pace and learning style. However, critics warn that rapid AI adoption may lead to significant job displacement. A 2023 report estimated that up to 30% of current jobs could be automated within the next decade. Proponents argue that new technologies historically create more jobs than they destroy, pointing to the Industrial Revolution as evidence. The debate continues as governments and companies race to establish ethical frameworks for AI deployment."},
+    {id:"g01_q1",type:"doc-hieu",group_id:"G01",is_passage:false,question:"According to the passage, what can AI systems now do in healthcare?",options:["Replace all radiologists","Analyze medical images with expert-level accuracy","Perform complex surgeries autonomously","Predict patient outcomes with 100% certainty"],answer:1,explanation:"Thông tin nằm ở câu 2: 'In healthcare, AI systems can now analyze medical images with accuracy comparable to experienced radiologists.'"},
+    {id:"g01_q2",type:"doc-hieu",group_id:"G01",is_passage:false,question:"What does the word 'proponents' in the passage most likely mean?",options:["Critics","Supporters","Scientists","Politicians"],answer:1,explanation:"'Proponents' nghĩa là những người ủng hộ, trái nghĩa hoàn toàn với 'critics' (những người chỉ trích) ở đoạn trước."},
+    {id:"g01_q3",type:"doc-hieu",group_id:"G01",is_passage:false,question:"Which statement best reflects the overall tone of the passage?",options:["Strongly optimistic about AI","Strongly pessimistic about AI","Balanced, presenting both sides","Neutral and purely factual"],answer:2,explanation:"Bài viết đưa ra cả lợi ích của AI (y tế, giáo dục) lẫn các cảnh báo tiêu cực từ các nhà phê bình (mất việc làm), thể hiện một góc nhìn đa chiều, cân bằng (Balanced)."},
+    {id:"g02_passage",type:"doc-hieu",group_id:"G02",is_passage:true,text:"The concept of 'blue zones' — regions where people consistently live past 100 — has fascinated researchers for decades. Identified in places like Sardinia, Okinawa, and the Nicoya Peninsula, these communities share common lifestyle traits. Residents typically follow a plant-based diet, engage in regular moderate exercise, maintain strong social bonds, and have a clear sense of purpose. Crucially, longevity in these regions is not primarily genetic. Studies of people who emigrate from blue zones show that life expectancy quickly aligns with the new environment. This suggests that lifestyle choices, not DNA, are the dominant factor in exceptional longevity."},
+    {id:"g02_q1",type:"doc-hieu",group_id:"G02",is_passage:false,question:"What is the main idea of the passage?",options:["Genetics is the key to living past 100","Blue zones are only found in Asia","Lifestyle factors, not genetics, primarily drive longevity in blue zones","Diet alone determines how long a person lives"],answer:2,explanation:"Toàn bài tập trung làm rõ luận điểm: Lối sống (lifestyle choices) chứ không phải gen di truyền (DNA) mới là yếu tố quyết định tuổi thọ cao tại các Blue Zones."},
+    {id:"g02_q2",type:"doc-hieu",group_id:"G02",is_passage:false,question:"Which evidence does the passage use to argue against a genetic explanation?",options:["Residents eat plant-based diets","Life expectancy changes when people move away from blue zones","Blue zones are in warm climates","Researchers have studied these areas for decades"],answer:1,explanation:"Đoạn cuối có ghi: 'Studies of people who emigrate from blue zones show that life expectancy quickly aligns with the new environment.' (Nghiên cứu người di cư ra khỏi vùng này cho thấy tuổi thọ thay đổi theo môi trường mới)."},
+    {id:"duc-lo_passage",type:"duc-lo",group_id:"DL01",is_passage:true,text:"Social media has fundamentally (1)_____ the way people communicate. While platforms like Instagram and TikTok (2)_____ users to share their lives instantly, researchers have raised (3)_____ about the impact on mental health, particularly among teenagers. Some studies suggest that excessive screen time is (4)_____ with higher rates of anxiety and depression."},
+    {id:"duc-lo_q1",type:"duc-lo",group_id:"DL01",is_passage:false,question:"Điền vào khoảng trống số (1):",options:["changed","changes","change","to change"],answer:0,explanation:"Câu dùng thì hiện tại hoàn thành 'has + V3/Ved' bổ nghĩa cho trạng từ 'fundamentally'. Do đó chọn 'changed'."},
+    {id:"duc-lo_q2",type:"duc-lo",group_id:"DL01",is_passage:false,question:"Điền vào khoảng trống số (2):",options:["allow","allows","allowed","allowing"],answer:0,explanation:"Chủ ngữ 'platforms like Instagram and TikTok' là danh từ số nhiều, câu ở hiện tại đơn nên động từ chia dạng nguyên mẫu 'allow'."},
+    {id:"duc-lo_q3",type:"duc-lo",group_id:"DL01",is_passage:false,question:"Điền vào khoảng trống số (3):",options:["concerns","concern","concerned","concerning"],answer:0,explanation:"Cụm 'raise concerns about something' có nghĩa là dấy lên/làm dấy lên những mối lo ngại về vấn đề gì."},
+    {id:"duc-lo_q4",type:"duc-lo",group_id:"DL01",is_passage:false,question:"Điền vào khoảng trống số (4):",options:["linked","linking","link","to link"],answer:0,explanation:"Cấu trúc bị động: 'be linked with' có nghĩa là được liên kết với/có hệ lụy liên quan tới điều gì."}
+  ]
+};
+
+const MISTAKE_BANK_KEY = "exam_mistakes_v1";
+function getMistakes(){try{return JSON.parse(localStorage.getItem(MISTAKE_BANK_KEY)||"[]")}catch{return[]}}
+function saveMistake(qid){const m=getMistakes();if(!m.includes(qid)){m.push(qid);try{localStorage.setItem(MISTAKE_BANK_KEY,JSON.stringify(m))}catch{}}}
+function clearMistakes(){try{localStorage.removeItem(MISTAKE_BANK_KEY);render();}catch{}}
+
+// --- ENGINE XỬ LÝ LOGIC TẠO ĐỀ ---
+const ENGINE = {
+  filter(type, level){
+    return DB.questions.filter(q=>{
+      if(q.is_passage) return false;
+      if(type!=="all" && q.type!==type) return false;
+      if(level!=="all" && q.level!==level) return false;
+      return true;
+    });
+  },
+  shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  },
+  buildExam(config){
+    let exam=[];
+    const usedGroups=new Set();
+    const typeList = config.type==="all" 
+      ? ["ngu-phap","tu-vung","phat-am","tim-loi-sai","doc-hieu","duc-lo"] 
+      : [config.type];
+
+    typeList.forEach(t=>{
+      if(t==="doc-hieu"){
+        const groups=[...new Set(DB.questions.filter(q=>q.type==="doc-hieu"&&q.is_passage).map(q=>q.group_id))];
+        const shuffledG=this.shuffle(groups);
+        shuffledG.slice(0, config.docHieuGroups || 1).forEach(gid=>{
+          if(!usedGroups.has(gid)){
+            usedGroups.add(gid);
+            const passage=DB.questions.find(q=>q.group_id===gid&&q.is_passage);
+            const qs=DB.questions.filter(q=>q.group_id===gid&&!q.is_passage);
+            if(passage) exam.push({...passage, _examType:"doc-hieu-passage"});
+            qs.forEach(q=>exam.push({...q,_examType:"doc-hieu-q"}));
+          }
+        });
+      } else if(t==="duc-lo"){
+        const groups=[...new Set(DB.questions.filter(q=>q.type==="duc-lo"&&q.is_passage).map(q=>q.group_id))];
+        const shuffledG=this.shuffle(groups);
+        shuffledG.slice(0,1).forEach(gid=>{
+          if(!usedGroups.has(gid)){
+            usedGroups.add(gid);
+            const passage=DB.questions.find(q=>q.group_id===gid&&q.is_passage);
+            const qs=DB.questions.filter(q=>q.group_id===gid&&!q.is_passage);
+            if(passage) exam.push({...passage,_examType:"duc-lo-passage"});
+            qs.forEach(q=>exam.push({...q,_examType:"duc-lo-q"}));
+          }
+        });
+      } else {
+        const pool=this.shuffle(this.filter(t, config.level));
+        pool.slice(0, config.countPerType).forEach(q=>exam.push({...q,_examType:t}));
+      }
+    });
+    return exam;
+  }
+};
+
+let state={
+  view:"config",
+  exam:[],
+  answers:{},
+  pinned:new Set(),
+  config:{type:"all",level:"all",countPerType:2,docHieuGroups:1,timer:15},
+  timeLeft:0,
+  timerInterval:null,
+  currentQ:0
+};
+
+function render(){
+  const app=document.getElementById("app");
+  if(state.view==="config") app.innerHTML=renderConfig();
+  else if(state.view==="exam") app.innerHTML=renderExam();
+  else if(state.view==="result") app.innerHTML=renderResult();
+  attachEvents();
+}
+
+function renderConfig(){
+  const mistakes=getMistakes();
+  return `
+<div style="max-width:800px; margin: 0 auto;">
+  <div class="card" style="margin-bottom:1.5rem">
+    <h3 style="font-size:16px; margin-bottom:12px;"><i class="ti ti-settings"></i> Cấu hình chế độ bốc đề</h3>
+    <p style="font-size:13px; color:var(--color-text-sub); margin-bottom:1.5rem">Hệ thống thuật toán sẽ tự động chọn lọc câu ngẫu nhiên từ kho dữ liệu JSON dựa trên bộ lọc của bạn.</p>
+    
+    <div style="margin-bottom:1.25rem">
+      <p style="font-size:12px; color:var(--color-text-sub); margin-bottom:8px; font-weight:600">DẠNG BÀI LUYỆN TẬP</p>
+      <div class="grid-2">
+        ${[["all","Tất cả các dạng phối hợp"],["ngu-phap","Ngữ pháp chuyên đề"],["tu-vung","Từ vựng & Collocations"],["phat-am","Phát âm & Trọng âm"],["tim-loi-sai","Nhận diện Tìm lỗi sai"],["doc-hieu","Đọc hiểu văn bản (Reading)"],["duc-lo","Điền từ vào đoạn văn (Cloze test)"]].map(([v,l])=>`
+          <button class="opt${state.config.type===v?" selected":""}" data-cfg="type" data-val="${v}">${l}</button>
+        `).join("")}
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; padding-top:10px; border-top:1px solid var(--color-border)">
+      <div>
+        <p style="font-size:12px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600">ĐỘ KHÓ ĐỀ BÀI</p>
+        <select id="cfg-level" style="width:100%">
+          <option value="all"${state.config.level==="all"?" selected":""}>Tất cả cấp độ</option>
+          <option value="easy"${state.config.level==="easy"?" selected":""}>Cơ bản (Easy)</option>
+          <option value="medium"${state.config.level==="medium"?" selected":""}>Thông hiểu (Medium)</option>
+          <option value="hard"${state.config.level==="hard"?" selected":""}>Vận dụng cao (Hard)</option>
+        </select>
+      </div>
+      <div>
+        <p style="font-size:12px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600">SỐ CÂU / MỖI DẠNG ĐƠN</p>
+        <input type="number" id="cfg-count" min="1" max="10" value="${state.config.countPerType}" style="width:100%">
+      </div>
+      <div>
+        <p style="font-size:12px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600">THỜI GIAN LÀM (PHÚT)</p>
+        <input type="number" id="cfg-timer" min="1" max="120" value="${state.config.timer}" style="width:100%">
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap">
+    <button class="btn btn-primary" id="btn-start" style="padding: 12px 24px;"><i class="ti ti-arrows-shuffle"></i> Phát động Tạo đề ngẫu nhiên</button>
+    ${mistakes.length>0 ? `
+      <button class="btn" id="btn-mistakes" style="border-color:#f59e0b; color:#b45309; background:#fffbeb;"><i class="ti ti-history"></i> Ôn tập câu làm sai cũ (${mistakes.length})</button>
+      <button class="btn" id="btn-clear-mistakes" style="color:#ef4444;"><i class="ti ti-trash"></i> Xóa lịch sử sai</button>
+    ` : ""}
+  </div>
+</div>`;
+}
+
+function renderExam(){
+  const nonPassage=state.exam.filter(q=>!q.is_passage);
+  const timerColor=state.timeLeft<=60?"danger":state.timeLeft<=180?"warning":"";
+  const mm=String(Math.floor(state.timeLeft/60)).padStart(2,"0");
+  const ss=String(state.timeLeft%60).padStart(2,"0");
+
+  const sidebarNums=nonPassage.map((q,i)=>{
+    let cls="sidebar-num";
+    if(state.pinned.has(q.id)) cls+=" pinned-s";
+    else if(state.answers[q.id]!==undefined) cls+=" answered";
+    if(i===state.currentQ) cls+=" current";
+    return `<div class="${cls}" data-qjump="${i}">C${i+1}</div>`;
+  }).join("");
+
+  let questionsHtml="";
+  let qCounter=0;
+
+  // Lắp ghép giao diện tối ưu cho từng cụm dạng đề bài
+  for(let i=0; i<state.exam.length; i++){
+    const item=state.exam[i];
+    if(item._examType==="doc-hieu-passage"){
+      questionsHtml+=`<div class="split-container">
+        <div class="split-left passage-box">
+          <p style="font-size:11px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600;text-transform:uppercase;"><i class="ti ti-file-text"></i> READING PASSAGE</p>
+          <div style="margin-top:6px">${item.text}</div>
+        </div>
+        <div class="split-right">`;
+      let j=i+1;
+      while(j<state.exam.length && state.exam[j].group_id===item.group_id && !state.exam[j].is_passage){
+        qCounter++;
+        questionsHtml+=renderMCQ(state.exam[j], qCounter);
+        j++;
+      }
+      questionsHtml+=`</div></div>`;
+      i=j-1;
+    } else if(item._examType==="duc-lo-passage"){
+      questionsHtml+=renderDucLo(item, state.exam, i);
+      let j=i+1;
+      while(j<state.exam.length && state.exam[j].group_id===item.group_id) j++;
+      qCounter += (j - (i + 1));
+      i=j-1;
+    } else if(!item.is_passage){
+      qCounter++;
+      questionsHtml+=renderMCQ(item, qCounter);
+    }
+  }
+
+  return `
+<div class="exam-layout">
+  <div class="main-content">
+    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem; background:#fff; padding:12px; border-radius:var(--border-radius-md); border:1px solid var(--color-border)">
+      <span class="timer ${timerColor}"><i class="ti ti-alarm"></i> ${mm}:${ss}</span>
+      <span style="font-size:14px;color:var(--color-text-sub); font-weight:500;"> Tiến độ: ${Object.keys(state.answers).length}/${nonPassage.length} câu câu hoàn thành</span>
+      <button class="btn btn-danger" id="btn-submit" style="margin-left:auto"><i class="ti ti-send"></i> Nộp Bài / Kết thúc</button>
+    </div>
+    ${questionsHtml}
+  </div>
+  
+  <div class="sidebar">
+    <div class="card" style="padding:1rem">
+      <p style="font-size:11px;font-weight:600;color:var(--color-text-sub);margin-bottom:12px;text-transform:uppercase">Điều hướng nhanh</p>
+      <div class="sidebar-grid">${sidebarNums}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--color-text-sub);border-top:1px solid var(--color-border);padding-top:10px">
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:#e0f2fe;border:1px solid #7dd3fc"></div>Đã tích đáp án</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:#fef3c7;border:1px solid #fcd34d"></div>Câu đánh dấu ghim</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderMCQ(q, num){
+  const sel=state.answers[q.id];
+  const pinned=state.pinned.has(q.id);
+  return `<div class="q-card${pinned?" pinned":""}" id="qcard-${q.id}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="q-num">Câu số ${num}</span>
+      ${getLevelBadge(q.level)}
+      ${getTypeBadge(q.type)}
+      <button class="pin-btn${pinned?" active":""}" data-pin="${q.id}" style="margin-left:auto"><i class="ti ti-bookmark"></i> ${pinned?"Đã ghim":"Ghim câu"}</button>
+    </div>
+    <p class="q-text">${q.question}</p>
+    <div class="options-container">
+      ${q.options.map((o,i)=>`
+        <button class="opt${sel===i?" selected":""}" data-ans="${q.id}" data-idx="${i}">
+          <strong>${String.fromCharCode(65+i)}.</strong> ${o}
+        </button>
+      `).join("")}
+    </div>
+  </div>`;
+}
+
+function renderDucLo(passage, exam, startIdx){
+  const qs=exam.filter(q=>q.group_id===passage.group_id&&!q.is_passage);
+  let text=passage.text;
+  
+  qs.forEach((q,i)=>{
+    const sel=state.answers[q.id];
+    // Tạo cấu trúc select trực quan ngay trong đoạn văn bản đục lỗ
+    const opts=q.options.map((o,idx)=>`<option value="${idx}"${sel===idx?" selected":""}>${String.fromCharCode(65+idx)}. ${o}</option>`).join("");
+    const dropdown=`<select data-duc="${q.id}" style="margin:0 4px; padding:2px 6px; border-color:#0284c7; font-weight:600;"><option value="">(${i+1}) Chọn...</option>${opts}</select>`;
+    text=text.replace(`(${i+1})_____`, dropdown);
+  });
+
+  return `<div class="card" style="margin-bottom:1.5rem">
+    <p style="font-size:11px;font-weight:600;color:var(--color-text-sub);margin-bottom:8px;text-transform:uppercase;"><i class="ti ti-edit"></i> CLOZE TEST (Điền từ vào đoạn văn)</p>
+    <div style="font-size:15px;line-height:2.2;text-align:justify; background:var(--color-bg-main); padding:1.25rem; border-radius:var(--border-radius-md)">${text}</div>
+  </div>`;
+}
+
+function renderResult(){
+  const nonPassage=state.exam.filter(q=>!q.is_passage);
+  let correctCount=0;
+  
+  nonPassage.forEach(q=>{
+    if(state.answers[q.id]===q.answer) correctCount++;
+  });
+
+  const pct=nonPassage.length > 0 ? Math.round((correctCount/nonPassage.length)*100) : 0;
+  let rank="Cần cố gắng thêm"; let badgeCls="badge-red";
+  if(pct>=85){ rank="Xuất Sắc"; badgeCls="badge-teal"; }
+  else if(pct>=70){ rank="Khá Tốt"; badgeCls="badge-blue"; }
+  else if(pct>=50){ rank="Trung Bình"; badgeCls="badge-amber"; }
+
+  let reviewHtml="";
+  let qc=0;
+
+  nonPassage.forEach(q=>{
+    qc++;
+    const userAns=state.answers[q.id];
+    const isCorrect=(userAns===q.answer);
+    
+    reviewHtml+=`<div class="q-card" style="border-left: 4px solid ${isCorrect?"#10b981":"#ef4444"}">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span class="q-num">Câu hỏi ${qc}</span>
+        <span class="badge ${isCorrect?"badge-teal":"badge-red"}">${isCorrect?"<i class='ti ti-check'></i> ĐÚNG":"<i class='ti ti-x'></i> SAI"}</span>
+        ${getTypeBadge(q.type)}
+      </div>
+      <p class="q-text" style="font-size:14px; margin-bottom:10px;">${q.question}</p>
+      
+      <div style="font-size:13px; margin-bottom:8px">
+        ${userAns!==undefined ? `<div><span style="color:var(--color-text-sub)">Lựa chọn của bạn:</span> <strong style="color:${isCorrect?"#0f766e":"#b91c1c"}">${String.fromCharCode(65+userAns)}. ${q.options[userAns]}</strong></div>` : "<div style='color:#b91c1c'>Bạn chưa trả lời câu này!</div>"}
+        <div><span style="color:var(--color-text-sub)">Đáp án chuẩn xác:</span> <strong style="color:#0f766e">${String.fromCharCode(65+q.answer)}. ${q.options[q.answer]}</strong></div>
+      </div>
+      
+      <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--color-border); font-size:13px; color:var(--color-text-sub); background:#f8fafc; padding:8px; border-radius:4px;">
+        <strong><i class="ti ti-bulb"></i> Phân tích giải thích:</strong> ${q.explanation || "Chưa cập nhật dữ liệu giải thích chi tiết."}
+      </div>
+    </div>`;
+  });
+
+  return `
+<div style="max-width:800px; margin: 0 auto">
+  <div class="card" style="margin-bottom:1.5rem;display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
+    <div>
+      <p style="font-size:14px;color:var(--color-text-sub);font-weight:500;">KẾT QUẢ ĐẠT ĐƯỢC</p>
+      <p style="font-size:46px;font-weight:600;color:var(--color-text-main);line-height:1">${correctCount}<span style="font-size:22px;color:var(--color-text-muted)">/${nonPassage.length}</span></p>
+    </div>
+    <div>
+      <p style="font-size:13px;color:var(--color-text-sub)">Tỷ lệ chính xác</p>
+      <p style="font-size:24px;font-weight:600;color:var(--color-text-main)">${pct}%</p>
+    </div>
+    <div>
+      <span class="badge ${badgeCls}" style="font-size:14px;padding:6px 16px; border-radius:6px">${rank}</span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn" id="btn-retry"><i class="ti ti-refresh"></i> Luyện lại đề này</button>
+      <button class="btn btn-primary" id="btn-new"><i class="ti ti-home"></i> Cấu hình đề mới</button>
+    </div>
+  </div>
+
+  <h3 style="font-size:15px;font-weight:600;color:var(--color-text-main);margin-bottom:12px; text-transform:uppercase"><i class="ti ti-list-check"></i> Xem lại chi tiết bài làm</h3>
+  ${reviewHtml}
+</div>`;
+}
+
+function getLevelBadge(l){
+  const map={easy:["badge-teal","Dễ"],medium:["badge-blue","Trung Bình"],hard:["badge-red","Vận Dụng Cao"]};
+  const [cls,label]=map[l]||["badge-blue",l];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function getTypeBadge(t){
+  const map={"ngu-phap":"Ngữ pháp","tu-vung":"Từ vựng","phat-am":"Phát âm","tim-loi-sai":"Lỗi sai","doc-hieu":"Đọc hiểu","duc-lo":"Đục lỗ"};
+  return `<span class="badge badge-purple">${map[t]||t}</span>`;
+}
+
+function startTimer(){
+  clearInterval(state.timerInterval);
+  state.timerInterval=setInterval(()=>{
+    state.timeLeft--;
+    if(state.timeLeft<=0){ submitExam(); }
+    else{
+      const el=document.querySelector(".timer");
+      if(el){
+        const mm=String(Math.floor(state.timeLeft/60)).padStart(2,"0");
+        const ss=String(state.timeLeft%60).padStart(2,"0");
+        el.innerHTML=`<i class="ti ti-alarm"></i> ${mm}:${ss}`;
+        el.className="timer"+(state.timeLeft<=60?" danger":state.timeLeft<=180?" warning":"");
+      }
+    }
+  },1000);
+}
+
+function submitExam(){
+  clearInterval(state.timerInterval);
+  const nonPassage=state.exam.filter(q=>!q.is_passage);
+  nonPassage.forEach(q=>{
+    const ans=state.answers[q.id];
+    if(ans!==q.answer) saveMistake(q.id);
+  });
+  state.view="result";
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function attachEvents(){
+  document.querySelectorAll("[data-cfg]").forEach(el=>{
+    el.onclick=()=>{ state.config[el.dataset.cfg]=el.dataset.val; render(); };
+  });
+  
+  const lvlEl=document.getElementById("cfg-level");
+  if(lvlEl) lvlEl.onchange=e=>{ state.config.level=e.target.value; };
+  const cntEl=document.getElementById("cfg-count");
+  if(cntEl) cntEl.onchange=e=>{ state.config.countPerType=parseInt(e.target.value)||2; };
+  const tmrEl=document.getElementById("cfg-timer");
+  if(tmrEl) tmrEl.onchange=e=>{ state.config.timer=parseInt(e.target.value)||15; };
+
+  const startBtn=document.getElementById("btn-start");
+  if(startBtn) startBtn.onclick=()=>{
+    state.exam=ENGINE.buildExam(state.config);
+    if(state.exam.length === 0){ alert("Không có câu hỏi nào khớp với bộ lọc cấu hình hiện tại! Vui lòng mở rộng bộ lọc."); return; }
+    state.answers={}; state.pinned=new Set(); state.currentQ=0;
+    state.timeLeft=state.config.timer*60;
+    state.view="exam";
+    render();
+    startTimer();
+  };
+
+  const mistakeBtn=document.getElementById("btn-mistakes");
+  if(mistakeBtn) mistakeBtn.onclick=()=>{
+    const ids=getMistakes();
+    state.exam=DB.questions.filter(q=>ids.includes(q.id)&&!q.is_passage).map(q=>({...q,_examType:q.type}));
+    state.answers={}; state.pinned=new Set(); state.currentQ=0;
+    state.timeLeft=state.config.timer*60;
+    state.view="exam";
+    render();
+    startTimer();
+  };
+
+  const clearMBtn = document.getElementById("btn-clear-mistakes");
+  if(clearMBtn) clearMBtn.onclick=()=>{ if(confirm("Bạn có chắc muốn xóa lịch sử các câu làm sai không?")) clearMistakes(); };
+
+  document.querySelectorAll("[data-ans]").forEach(el=>{
+    el.onclick=()=>{
+      const qid = el.dataset.ans;
+      state.answers[qid]=parseInt(el.dataset.idx);
+      const nonPassage=state.exam.filter(q=>!q.is_passage);
+      state.currentQ=nonPassage.findIndex(q=>q.id===qid);
+      render();
+    };
+  });
+
+  document.querySelectorAll("[data-duc]").forEach(el=>{
+    el.onchange=()=>{
+      if(el.value!=="") {
+        state.answers[el.dataset.duc]=parseInt(el.value);
+        // Tự động cập nhật trạng thái làm bài ở sidebar điều hướng
+        const nonPassage=state.exam.filter(q=>!q.is_passage);
+        state.currentQ=nonPassage.findIndex(q=>q.id===el.dataset.duc);
+      } else {
+        delete state.answers[el.dataset.duc];
+      }
+    };
+  });
+
+  document.querySelectorAll("[data-pin]").forEach(el=>{
+    el.onclick=()=>{
+      const id=el.dataset.pin;
+      if(state.pinned.has(id)) state.pinned.delete(id);
+      else state.pinned.add(id);
+      render();
+    };
+  });
+
+  document.querySelectorAll("[data-qjump]").forEach(el=>{
+    el.onclick=()=>{
+      const idx=parseInt(el.dataset.qjump);
+      state.currentQ=idx;
+      const nonP=state.exam.filter(q=>!q.is_passage);
+      const targetId="qcard-"+nonP[idx]?.id;
+      const target=document.getElementById(targetId);
+      if(target) target.scrollIntoView({behavior:"smooth",block:"center"});
+      render();
+    };
+  });
+
+  const submitBtn=document.getElementById("btn-submit");
+  if(submitBtn) submitBtn.onclick=()=>{ if(confirm("Bạn có chắc chắn muốn nộp bài chấm điểm ngay không?")) submitExam(); };
+  
+  const retryBtn=document.getElementById("btn-retry");
+  if(retryBtn) retryBtn.onclick=()=>{ state.answers={}; state.pinned=new Set(); state.currentQ=0; state.timeLeft=state.config.timer*60; state.view="exam"; render(); startTimer(); };
+  
+  const newBtn=document.getElementById("btn-new");
+  if(newBtn) newBtn.onclick=()=>{ clearInterval(state.timerInterval); state.view="config"; render(); };
+}
+
+render();
+</script>
+</body>
+</html>
