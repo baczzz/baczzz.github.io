@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Smart Quiz Generator — Hệ Thống Tạo Đề Tiếng Anh Thông Minh For Triệu</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css">
+
+  <style>
+    :root {
+      --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      --color-bg-main: #f8fafc;
+      --color-bg-card: #ffffff;
+      --color-bg-sub: #f1f5f9;
+      --color-text-main: #0f172a;
+      --color-text-sub: #475569;
+      --color-text-muted: #94a3b8;
+      --color-border: #e2e8f0;
+      --border-radius-lg: 12px;
+      --border-radius-md: 8px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background: var(--color-bg-main); color: var(--color-text-main); line-height: 1.5; padding: 1.5rem; }
+    .container { max-width: 1200px; margin: 0 auto; }
+    
+    header { margin-bottom: 2rem; border-bottom: 1px solid var(--color-border); padding-bottom: 1rem; }
+    header h1 { font-size: 1.5rem; font-weight: 600; color: var(--color-text-main); display: flex; align-items: center; gap: 8px; }
+    header p { font-size: 14px; color: var(--color-text-sub); margin-top: 4px; }
+
+    .card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); padding: 1.5rem; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    
+    /* Badge styling */
+    .badge { display: inline-flex; align-items: center; font-size: 11px; padding: 4px 8px; border-radius: var(--border-radius-md); font-weight: 500; text-transform: uppercase; letter-spacing: 0.5px; }
+    .badge-blue { background: #e0f2fe; color: #0369a1; }
+    .badge-teal { background: #ccfbf1; color: #0f766e; }
+    .badge-amber { background: #fef3c7; color: #b45309; }
+    .badge-red { background: #fee2e2; color: #b91c1c; }
+    .badge-purple { background: #f3e8ff; color: #7e22ce; }
+
+    /* Button styling */
+    .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); background: var(--color-bg-card); color: var(--color-text-main); font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; }
+    .btn:hover { background: var(--color-bg-sub); border-color: var(--color-text-muted); }
+    .btn-primary { background: var(--color-text-main); color: #ffffff; border-color: transparent; }
+    .btn-primary:hover { background: #1e293b; opacity: 0.9; }
+    .btn-danger { background: #ef4444; color: white; border-color: transparent; }
+    .btn-danger:hover { background: #dc2626; }
+
+    select, input[type=number] { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); background: var(--color-bg-card); color: var(--color-text-main); font-size: 14px; outline: none; }
+    select:focus, input[type=number]:focus { border-color: var(--color-text-muted); }
+
+    /* Option styling */
+    .opt { width: 100%; text-align: left; padding: 12px 16px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); cursor: pointer; font-size: 14px; margin-bottom: 8px; display: block; background: var(--color-bg-card); color: var(--color-text-main); transition: all 0.15s; font-family: var(--font-sans); }
+    .opt:hover { border-color: var(--color-text-sub); background: var(--color-bg-main); }
+    .opt.selected { border-color: #0284c7; background: #f0f9ff; color: #0369a1; font-weight: 500; }
+    .opt.correct { border-color: #10b981; background: #ecfdf5; color: #047857; font-weight: 500; }
+    .opt.wrong { border-color: #ef4444; background: #fef2f2; color: #b91c1c; }
+
+    /* Layout workspace */
+    .exam-layout { display: flex; gap: 1.5rem; align-items: flex-start; }
+    .main-content { flex: 1; min-width: 0; }
+    .sidebar { width: 240px; flex-shrink: 0; position: sticky; top: 1.5rem; }
+
+    .q-card { background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 1px 2px rgba(0,0,0,0.02); transition: border-color 0.2s; }
+    .q-card.pinned { border-color: #f59e0b; background: #fffbeb; }
+    .q-num { font-size: 12px; font-weight: 600; color: var(--color-text-sub); }
+    .q-text { font-size: 15px; color: var(--color-text-main); font-weight: 500; margin-bottom: 1rem; line-height: 1.6; }
+
+    .pin-btn { font-size: 12px; padding: 4px 10px; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); background: transparent; cursor: pointer; color: var(--color-text-sub); display: inline-flex; align-items: center; gap: 4px; }
+    .pin-btn.active { background: #fef3c7; color: #b45309; border-color: #f59e0b; }
+
+    /* Sidebar Grid navigation */
+    .sidebar-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-bottom: 1rem; }
+    .sidebar-num { height: 36px; display: flex; align-items: center; justify-content: center; border: 1px solid var(--color-border); border-radius: var(--border-radius-md); font-size: 13px; font-weight: 500; cursor: pointer; background: var(--color-bg-card); color: var(--color-text-sub); transition: all 0.15s; }
+    .sidebar-num:hover { border-color: var(--color-text-sub); }
+    .sidebar-num.answered { background: #e0f2fe; color: #0369a1; border-color: #7dd3fc; }
+    .sidebar-num.pinned-s { background: #fef3c7; color: #b45309; border-color: #fcd34d; }
+    .sidebar-num.current { background: var(--color-text-main); color: #ffffff; border-color: var(--color-text-main); }
+
+    .timer { font-size: 28px; font-weight: 600; font-variant-numeric: tabular-nums; color: var(--color-text-main); display: flex; align-items: center; gap: 6px; }
+    .timer.warning { color: #d97706; }
+    .timer.danger { color: #dc2626; animation: pulse 1s infinite; }
+
+    @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+
+    /* Split Screen UI cho bài đọc hiểu */
+    .split-container { display: flex; gap: 1.5rem; margin-bottom: 1.5rem; background: var(--color-bg-card); border: 1px solid var(--color-border); border-radius: var(--border-radius-lg); overflow: hidden; padding: 1rem; }
+    .split-left { flex: 1.1; overflow-y: auto; max-height: 550px; padding-right: 1.25rem; font-size: 15px; line-height: 1.8; color: var(--color-text-main); text-align: justify; }
+    .split-right { flex: 0.9; overflow-y: auto; max-height: 550px; padding-left: 0.25rem; }
+    .split-left::-webkit-scrollbar, .split-right::-webkit-scrollbar { width: 6px; }
+    .split-left::-webkit-scrollbar-thumb, .split-right::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+    .passage-box { background: var(--color-bg-main); padding: 1.25rem; border-radius: var(--border-radius-md); border-left: 4px solid var(--color-text-muted); }
+
+    /* Responsive */
+    @media (max-width: 768px) {
+      .exam-layout { flex-direction: column-reverse; }
+      .sidebar { width: 100%; position: static; margin-bottom: 1.5rem; }
+      .sidebar-grid { grid-template-columns: repeat(8, 1fr); }
+      .split-container { flex-direction: column; }
+      .split-left, .split-right { max-height: none; }
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <h1><i class="ti ti-brain"></i> Smart Quiz Generator</h1>
+    <p>Hệ thống tự động lắp ráp và luyện đề trắc nghiệm Tiếng Anh thông minh</p>
+  </header>
+
+  <div id="app"></div>
+</div>
+
+<script>
+// --- NGÂN HÀNG CÂU HỎI CHUẨN (DATABASE) ---
+const DB = {
+  questions: [
+    [
+  {
+    "id": "v1_passage",
+    "type": "duc-lo",
+    "group_id": "V1",
+    "is_passage": true,
+    "text": "It’s very important to encourage your child (1) ______ from an early age, but sometimes it is quite hard to find the right books for them. Those that are too easy can make reading time boring, while those that are too difficult can cause your child to become (2) ______. This is where the five finger rule can help you. To apply this rule, ask your child to read a random page in the book. For every word that they (3) ______, they should raise a finger. If they do not raise any finger or only one finger, the book is most like too simple. Raising two fingers means that the book is a reasonable choice while three fingers (4) ______that the book is a bit challenging but is still fine if your child doesn’t mind. Meanwhile, if they hold up four or five fingers, the book is probably too advanced for them to read. One important thing to remember about the five finger rule is that it is only a guideline (5) ______ which you can help your child find books that are just right."
+  },
+  {
+    "id": "v1_q1",
+    "type": "duc-lo",
+    "group_id": "V1",
+    "is_passage": false,
+    "tags": ["dong-tu-nguyen-mau"],
+    "level": "easy",
+    "question": "Choose the correct word or phrase that best fits the numbered blank (1):",
+    "options": ["to read", "read", "reading", "to reading"],
+    "answer": 0,
+    "explanation": "Cấu trúc: 'encourage sby to do sth' (khuyến khích ai đó làm gì). Do đó dùng động từ nguyên mẫu có 'to'."
+  },
+  {
+    "id": "v1_q2",
+    "type": "duc-lo",
+    "group_id": "V1",
+    "is_passage": false,
+    "tags": ["tu-vung"],
+    "level": "medium",
+    "question": "Choose the correct word or phrase that best fits the numbered blank (2):",
+    "options": ["upset", "angry", "frustrated", "unsatified"],
+    "answer": 2,
+    "explanation": "Dựa vào ngữ cảnh, việc đọc sách quá khó khiến trẻ dễ bị nản lòng, bực dọc bất lực. Tính từ 'frustrated' mang ý nghĩa này."
+  },
+  {
+    "id": "v1_q3",
+    "type": "duc-lo",
+    "group_id": "V1",
+    "is_passage": false,
+    "tags": ["thi-hien-tai-don"],
+    "level": "easy",
+    "question": "Choose the correct word or phrase that best fits the numbered blank (3):",
+    "options": ["doesn't know", "didn't know", "don't know", "hadn't known"],
+    "answer": 2,
+    "explanation": "Chủ ngữ là đại từ 'they' ở ngữ cảnh hiện tại đơn (diễn tả quy tắc chung), trợ động từ phủ định phù hợp là 'don't know'."
+  },
+  {
+    "id": "v1_q4",
+    "type": "duc-lo",
+    "group_id": "V1",
+    "is_passage": false,
+    "tags": ["tu-loai"],
+    "level": "medium",
+    "question": "Choose the correct word or phrase that best fits the numbered blank (4):",
+    "options": ["indicate", "indicative", "indication", "indicated"],
+    "answer": 0,
+    "explanation": "Vị trí cần một động từ chính chia theo chủ ngữ số nhiều 'three fingers' trong mệnh đề hiện tại đơn, chọn động từ nguyên mẫu 'indicate'."
+  },
+  {
+    "id": "v1_q5",
+    "type": "duc-lo",
+    "group_id": "V1",
+    "is_passage": false,
+    "tags": ["giay-tu"],
+    "level": "medium",
+    "question": "Choose the correct word or phrase that best fits the numbered blank (5):",
+    "options": ["turned on", "based on", "depended on", "taken on"],
+    "answer": 1,
+    "explanation": "Cụm 'based on which' nghĩa là 'dựa vào đó' (dựa trên hướng dẫn đó để giúp trẻ tìm sách thích hợp)."
+  },
+  {
+    "id": "v2_passage",
+    "type": "duc-lo",
+    "group_id": "V2",
+    "is_passage": true,
+    "text": "Catherine II was a very important queen in Russian history. (1) ______ and her real name was Sophie Friederike Auguste von Anhalt-Zerbst-Dornburg. (2) ______, she went to Russia to marry Peter III, who was the grandson of Peter the Great. They got married in 1745 and Catherine became a Grand Duchess. Later than, Peter III became the Tsar of Russia in 1762, but he was not a good leader. He made many people angry and (3) ______. She was very smart and she worked hard to gain the support of the Russian army. In 1762, she led a coup against Peter III and she became the Empress of Russia. Catherine II was a very powerful leader and she ruled Russia for 34 years. She was known as Catherine the Great because of all the good things she did for Russia. She made many important changes to the country. She built schools, hospitals, and libraries. She also started a museum, (4) ______ in Saint Petersburg. Moreover, Catherine II was also very interested in art and culture. She invited many famous artists and writers to come to Russia. She was a good friend of Voltaire, who was a famous French philosopher. They wrote many letters to each other, and Voltaire even dedicated some of his works to Catherine II. (5) ______. She was a very important leader and she made many positive changes to Russia. She will always be remembered as one of the greatest rulers in Russian history."
+  },
+  {
+    "id": "v2_q1",
+    "type": "duc-lo",
+    "group_id": "V2",
+    "is_passage": false,
+    "tags": ["thi-qua-khu-don"],
+    "level": "easy",
+    "question": "Question 2.1:",
+    "options": ["She was born in Germany in 1729.", "In 1729, her parents were giving birth to her.", "Catherine II born in Germany in 1729.", "In Germany, 1729, Catherine II born."],
+    "answer": 0,
+    "explanation": "Cấu trúc bị động ở quá khứ đơn đối với sự kiện sinh ra: 'S + was/were born + in + năm'."
+  },
+  {
+    "id": "v2_q2",
+    "type": "duc-lo",
+    "group_id": "V2",
+    "is_passage": false,
+    "tags": ["menh-de-thoi-gian"],
+    "level": "easy",
+    "question": "Question 2.2:",
+    "options": ["When she was being 15 years old", "While she was being 15 years old", "While she was 15 years old", "When she was 15 years old"],
+    "answer": 3,
+    "explanation": "Khi nói về một mốc tuổi trong quá khứ, ta dùng 'When + S + was + số tuổi'. Không dùng dạng tiếp diễn 'being' cho tính từ chỉ tuổi."
+  },
+  {
+    "id": "v2_q3",
+    "type": "duc-lo",
+    "group_id": "V2",
+    "is_passage": false,
+    "tags": ["thi-qua-khu-don"],
+    "level": "medium",
+    "question": "Question 2.3:",
+    "options": ["Catherine was knowing that something had to be done.", "Something had known to be done by Catherine.", "Catherine knew that something had to be done.", "Something were known to be done by Catherine."],
+    "answer": 2,
+    "explanation": "Động từ trạng thái 'know' không chia ở dạng tiếp diễn. Mệnh đề chủ động ở quá khứ đơn phù hợp nhất là chọn 'knew'."
+  },
+  {
+    "id": "v2_q4",
+    "type": "duc-lo",
+    "group_id": "V2",
+    "is_passage": false,
+    "tags": ["menh-de-quan-he"],
+    "level": "medium",
+    "question": "Question 2.4:",
+    "options": ["which was now the famous Hermitage Museum", "which is now the famous Hermitage Museum", "that was being the famous Hermitage Museum", "that is now the famous Hermitage Museum"],
+    "answer": 1,
+    "explanation": "Sử dụng đại từ quan hệ 'which' cho mệnh đề quan hệ không xác định (sau dấu phẩy). Trạng từ 'now' chỉ thời điểm hiện tại nên động từ chia là 'is'."
+  },
+  {
+    "id": "v2_q5",
+    "type": "duc-lo",
+    "group_id": "V2",
+    "is_passage": false,
+    "tags": ["trang-tu"],
+    "level": "medium",
+    "question": "Question 2.5:",
+    "options": ["Unluckily, Catherine II died in 1796 at the age of 67", "Luckily, Catherine II died in 1796 at the age of 67", "Unluckily, Catherine II was dying in 1796 at the age of 67", "Fortunately, Catherine II was dying in 1796 at the age of 67"],
+    "answer": 0,
+    "explanation": "Sự việc qua đời là một điều đáng tiếc, sử dụng trạng từ liên kết 'Unluckily'. Hành động 'died' chia ở quá khứ đơn vì là sự kiện đã hoàn tất."
+  },
+  {
+    "id": "v3_passage",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": true,
+    "text": "How do children learn about wildlife? And is what they learn the sort of thing they should be learning?\nIt is my belief that children should not just be acquiring knowledge of animals but also developing attitudes and feelings towards them based on exposure to the real lives of animals in their natural habitats. But is this happening? Some research in this area indicates that it is not. Learning about animals in school is often completely disconnected from the real lives of real animals, with the result that children often end up with little or no understanding or lasting knowledge of them. They learn factual information about animals, aimed at enabling them to identify them and have various abstract ideas about them, but that is the extent of their learning. Children’s storybooks tend to personify animals as characters rather than teach about them.\nFor direct contact with wild and international animals, the only opportunity most children have is visiting a zoo. The educational benefit of this for children is often given as the main reason for doing it but research has shown that zoo visits seldom add to children’s knowledge of animals - the animals are simply like exhibits in a museum that the children look at without engaging with them as living creatures.\nResearch has also been done into the attitudes of children towards animals. It shows that in general terms, children form strong attachments to individual animals, usually their pets, but do not have strong feelings for animals in general. This attitude is the norm regardless of the amount or kind of learning about animals they have at school. However, those children who watch television wildlife programmes show an interest in and affection for wildlife in its natural environment, and their regard for animals in general is higher."
+  },
+  {
+    "id": "v3_q1",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["tieu-de-bai-doc"],
+    "level": "hard",
+    "question": "3.1: What could be the best title for the passage?",
+    "options": ["Zoos: The Best Opportunity to Learn About Animals", "Methods of Learning About Animals at School", "Learning About Animals at School", "Research on Learning About Animals"],
+    "answer": 2,
+    "explanation": "Toàn bộ bài đọc tập trung phân tích thực trạng, hạn chế và kết quả của việc trẻ em học về động vật ở trường cũng như qua các phương tiện khác."
+  },
+  {
+    "id": "v3_q2",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["tu-trai-nghia"],
+    "level": "medium",
+    "question": "3.2: The word benefit in paragraph 3, is OPPOSITE in meaning to ______.",
+    "options": ["detriment", "advantage", "boring", "assistance"],
+    "answer": 0,
+    "explanation": "'Benefit' nghĩa là lợi ích, từ trái nghĩa là 'detriment' (sự tổn hại, gây hại)."
+  },
+  {
+    "id": "v3_q3",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["doc-tim-thong-tin"],
+    "level": "medium",
+    "question": "3.3: As started in paragraph 2, children’s learning about animals at school…….",
+    "options": ["has the wrong emphasis", "is often inaccurate", "will be harmful", "is taught by teachers"],
+    "answer": 0,
+    "explanation": "Đoạn 2 chỉ ra việc học ở trường quá tách rời thực tế và chỉ chú trọng thông tin trừu tượng, tức là phân bổ trọng tâm chưa đúng đắn (wrong emphasis)."
+  },
+  {
+    "id": "v3_q4",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["tu-thay-the"],
+    "level": "easy",
+    "question": "3.4: The word them in paragraph 2 refers to ______.",
+    "options": ["ideas", "children’s storybooks", "children", "animals"],
+    "answer": 3,
+    "explanation": "Từ 'them' trong cụm 'lasting knowledge of them' thay thế cho danh từ 'real animals' ở phía trước."
+  },
+  {
+    "id": "v3_q5",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["cau-hoi-not"],
+    "level": "hard",
+    "question": "3.5: Which of the following is NOT TRUE according to the passage?",
+    "options": ["Children’s storybooks give factual information about animals.", "The writer raises the issue of the outcome of what children learn about animals.", "Learning about animals in their natural habitats teaches children more about animals than other methods.", "Zoo visits have less educational benefit than they are believed to have."],
+    "answer": 0,
+    "explanation": "Bài viết nêu rõ: 'Children’s storybooks tend to personify animals as characters rather than teach about them' (Sách truyện xu hướng nhân hóa động vật hơn là dạy thông tin thực tế), do đó phương án A sai."
+  },
+  {
+    "id": "v3_q6",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["cau-hoi-suy-luan"],
+    "level": "hard",
+    "question": "3.6: It can be inferred from paragraph 4 that children’s attitudes to animals ______.",
+    "options": ["depend on whether or not they have pets", "differ from what adults might expect them to be", "based on how much they know about the animals", "are not affected by what they learn about them at school"],
+    "answer": 3,
+    "explanation": "Đoạn 4 có câu: 'This attitude is the norm regardless of the amount or kind of learning about animals they have at school' nghĩa là thái độ của trẻ không bị ảnh hưởng bởi việc học ở trường."
+  },
+  {
+    "id": "v3_q7",
+    "type": "doc-hieu",
+    "group_id": "V3",
+    "is_passage": false,
+    "tags": ["tu-dong-nghia"],
+    "level": "medium",
+    "question": "3.7: The word regard in paragraph 4 is closest in meaning to ______.",
+    "options": ["opinion", "respect", "attitude", "sympathy"],
+    "answer": 1,
+    "explanation": "'Regard' trong ngữ cảnh này chỉ sự quan tâm, tôn trọng hoặc đánh giá cao đối với động vật hoang dã, gần nghĩa nhất với 'respect'."
+  },
+  {
+    "id": "v4_passage",
+    "type": "doc-hieu",
+    "group_id": "V4",
+    "is_passage": true,
+    "text": "The Importance of Environmental Conservation\nIn today's rapidly changing world, the importance of environmental conservation cannot be overstated. Our planet's ecosystems, which have evolved over millions of years, are now facing unprecedented threats from human activities. Deforestation, pollution, climate change, and the loss of biodiversity are just a few of the critical issues that need urgent attention.\nForests, often referred to as the lungs of the Earth, play a crucial role in absorbing carbon dioxide and producing oxygen. They also provide habitat for countless species of wildlife. However, extensive logging and land conversion for agriculture are leading to deforestation at an alarming rate. This not only contributes to climate change but also endangers species that depend on these forests for survival.\nPollution, another significant environmental challenge, affects air, water, and soil quality. Industrial activities, vehicular emissions, and improper waste disposal are major contributors to environmental degradation. Pollutants can harm human health, disrupt ecosystems, and threaten the survival of many species.\nClimate change, driven by greenhouse gas emissions, is altering weather patterns, melting ice caps, and raising sea levels. These changes impact agriculture, water resources, and natural habitats, posing a threat to both human societies and wildlife.\nAddressing these environmental issues requires global cooperation and individual action. Emphasizing sustainable practices, reducing waste, conserving energy, and protecting natural habitats are essential steps towards a healthier planet. By prioritizing environmental conservation, we can work towards a more balanced and resilient ecosystem for future generations."
+  },
+  {
+    "id": "v4_q1",
+    "type": "doc-hieu",
+    "group_id": "V4",
+    "is_passage": false,
+    "tags": ["tom-tat-doan-van"],
+    "level": "medium",
+    "question": "4.1. Which of the following best summarizes paragraph 1?",
+    "options": ["The natural balance of the planet has remained unchanged over millions of years, but recent human activities are now posing significant threats to it.", "Human activities such as deforestation, pollution, climate change, and loss of biodiversity are rapidly threatening the stability of ecosystems that have evolved over millions of years.", "Efforts to conserve the environment have led to significant reductions in pollution and climate change impacts, demonstrating the success of global conservation initiatives.", "Forests are the primary focus of environmental conservation efforts, as they provide the majority of the Earth's oxygen and habitat for wildlife."],
+    "answer": 1,
+    "explanation": "Đoạn 1 tóm ý chính rằng các hoạt động của con người đang đe dọa các hệ sinh thái đã tiến hóa hàng triệu năm qua."
+  },
+  {
+    "id": "v4_q2",
+    "type": "doc-hieu",
+    "group_id": "V4",
+    "is_passage": false,
+    "tags": ["tu-dong-nghia-cau"],
+    "level": "hard",
+    "question": "4.2. To which of the following is the sentence \"Forests, often referred to as the lungs of the Earth, play a crucial role in absorbing carbon dioxide and producing oxygen\" in paragraph 2 is closest in meaning ?",
+    "options": ["The negative effects of industrial pollution on air and water quality.", "The impact of deforestation on climate change and wildlife habitats.", "The significance of protecting natural habitats for future generations.", "The need for global cooperation in addressing climate change."],
+    "answer": 1,
+    "explanation": "Dựa theo logic đoạn 2 về vai trò của rừng và hậu quả của việc tàn phá rừng lên khí hậu và môi trường sống của sinh vật."
+  },
+  {
+    "id": "v4_q3",
+    "type": "doc-hieu",
+    "group_id": "V4",
+    "is_passage": false,
+    "tags": ["tu-dong-nghia-cau"],
+    "level": "medium",
+    "question": "4.3. Which of the following is closest in meaning to the sentence \"Industrial activities, vehicular emissions, and improper waste disposal are major contributors to environmental degradation\"?",
+    "options": ["Industrial activities and vehicular emissions are beneficial for the environment, while waste disposal needs improvement.", "Industrial activities and vehicular emissions are minor factors in environmental protection, but waste disposal is critical.", "Major sources of environmental harm include industrial activities, vehicle emissions, and improper waste management.", "Environmental degradation is primarily caused by natural processes rather than human activities like industrial work and vehicle use."],
+    "answer": 2,
+    "explanation": "Câu viết lại diễn đạt chính xác: các nguồn gây hại chính cho môi trường bao gồm hoạt động công nghiệp, khí thải xe cộ và quản lý chất thải kém."
+  },
+  {
+    "id": "v4_q4",
+    "type": "doc-hieu",
+    "group_id": "V4",
+    "is_passage": false,
+    "tags": ["doc-tim-thong-tin"],
+    "level": "medium",
+    "question": "4.4. Which of the following best describes the impact of climate change as mentioned in the sentence \"Climate change, driven by greenhouse gas emissions, is altering weather patterns, melting ice caps, and raising sea levels\"?",
+    "options": ["Climate change is causing a decrease in greenhouse gas emissions and improving weather stability.", "Greenhouse gas emissions are leading to changes in weather patterns, ice cap melting, and rising sea levels.", "Climate change is solely affecting ocean temperatures without influencing weather patterns or ice caps.", "The primary effect of climate change is the reduction of sea levels and stabilization of ice caps."],
+    "answer": 1,
+    "explanation": "Khí thải nhà kính dẫn đến biến đổi khí hậu làm thay đổi thời tiết, tan băng và dâng mực nước biển."
+  },
+  {
+    "id": "v4_q5",
+    "type": "doc-hieu",
+    "group_id": "V4",
+    "is_passage": false,
+    "tags": ["tom-tat-doan-van"],
+    "level": "medium",
+    "question": "4.5. Which of the following best summarizes paragraph 2?",
+    "options": ["The destruction of forests through logging and land conversion significantly impacts wildlife and contributes to climate change.", "Forests are mostly unaffected by human activities and continue to thrive despite logging and land conversion.", "Forests provide minimal benefit to wildlife and are less important for carbon dioxide absorption and oxygen production.", "The primary role of forests is to reduce pollution and improve air quality by minimizing industrial activities."],
+    "answer": 0,
+    "explanation": "Ý chính đoạn 2 nhấn mạnh sự tàn phá rừng ảnh hưởng tiêu cực đến động vật hoang dã và làm tăng biến đổi khí hậu."
+  },
+  {
+    "id": "v5_passage",
+    "type": "duc-lo",
+    "group_id": "V5",
+    "is_passage": true,
+    "text": "Wind and solar power are important for protecting the environment because they reduce our need for fossil fuels, which (1) ______ pollution and helps fight climate change. Using these renewable energy sources also supports (2) ______ growth by creating new jobs in the green energy sector. Solar power uses solar panels to turn sunlight into electricity. This method is very efficient and doesn't produce any pollution, (3) ______ helps lower our carbon footprint. Solar panels are great for homes because they need little upkeep and last a long time. However, they depend on sunny weather, so the (4) ______ the area, the less useful solar panels are. Wind power converts wind into electricity using big turbines. It doesn't release any greenhouse gases, but it isn't practical for home use since turbines need regular maintenance. Wind farms can (5) ______ on a large scale and generate electricity all the time, day or night. With more investment, wind power could become a reliable energy source for large cities and regions."
+  },
+  {
+    "id": "v5_q1",
+    "type": "duc-lo",
+    "group_id": "V5",
+    "is_passage": false,
+    "tags": ["phrasal-verb"],
+    "level": "medium",
+    "answer": 0,
+    "question": "1.1 . Choose the correct phrase (1):",
+    "options": ["cuts down on", "cuts across", "cuts off", "cuts back on"],
+    "explanation": "Cụm 'cut down on' nghĩa là giảm thiểu tiêu thụ/cắt giảm (giảm ô nhiễm). 'Cut back on' thường dùng cho ngân sách chi tiêu."
+  },
+  {
+    "id": "v5_q2",
+    "type": "duc-lo",
+    "group_id": "V5",
+    "is_passage": false,
+    "tags": ["tu-loai"],
+    "level": "easy",
+    "answer": 2,
+    "question": "1.2 . Choose the correct word (2):",
+    "options": ["sustain", "sustainably", "sustainable", "sustainability"],
+    "explanation": "Đứng trước danh từ 'growth' cần một tính từ bổ nghĩa, do đó chọn 'sustainable' (bền vững)."
+  },
+  {
+    "id": "v5_q3",
+    "type": "duc-lo",
+    "group_id": "V5",
+    "is_passage": false,
+    "tags": ["menh-de-quan-he"],
+    "level": "easy",
+    "answer": 2,
+    "question": "1.3 . Choose the correct word (3):",
+    "options": ["whose", "that", "which", "who"],
+    "explanation": "Sử dụng 'which' làm đại từ quan hệ để thay thế cho cả mệnh đề đứng trước nó sau dấu phẩy."
+  },
+  {
+    "id": "v5_q4",
+    "type": "duc-lo",
+    "group_id": "V5",
+    "is_passage": false,
+    "tags": ["so-sanh-kep"],
+    "level": "medium",
+    "answer": 0,
+    "question": "1.4 . Choose the correct word (4):",
+    "options": ["cloudier", "cloudy", "more cloudy", "cloudiest"],
+    "explanation": "Cấu trúc so sánh kép: 'The + so sánh hơn + S + V, the + so sánh hơn + S + V'. Do 'cloudy' là tính từ ngắn nên chuyển thành 'cloudier'."
+  },
+  {
+    "id": "v5_q5",
+    "type": "duc-lo",
+    "group_id": "V5",
+    "is_passage": false,
+    "tags": ["the-bi-dong"],
+    "level": "easy",
+    "answer": 1,
+    "question": "1.5 . Choose the correct phrase (5):",
+    "options": ["setting up", "be set up", "set up", "to be set up"],
+    "explanation": "Đằng sau động từ khuyết thiếu 'can' cần động từ nguyên mẫu dạng bị động 'be + V3/ed' vì chủ ngữ là các trang trại gió (wind farms)."
+  }
+],
+{
+  "id": "DE_01_VD_02",
+  "type": "cloze_sentence_fitting",
+  "passage": "Catherine II was a very important queen in Russian history. (1) ______ and her real name was Sophie Friederike Auguste von Anhalt-Zerbst-Dornburg. (2) ______, she went to Russia to marry Peter III, who was the grandson of Peter the Great. They got married in 1745 and Catherine became a Grand Duchess. Later than, Peter III became the Tsar of Russia in 1762, but he was not a good leader. He made many people angry and (3) ______. She was very smart and she worked hard to gain the support of the Russian army. In 1762, she led a coup against Peter III and she became the Empress of Russia. Catherine II was a very powerful leader and she ruled Russia for 34 years. She was known as Catherine the Great because of all the good things she did for Russia. She made many important changes to the country. She built schools, hospitals, and libraries. She also started a museum, (4) ______ in Saint Petersburg. Moreover, Catherine II was also very interested in art and culture. She invited many famous artists and writers to come to Russia. She was a good friend of Voltaire, who was a famous French philosopher. They wrote many letters to each other, and Voltaire even dedicated some of his works to Catherine II. (5) ______. She was a very important leader and she made many positive changes to Russia. She will always be remembered as one of the greatest rulers in Russian history.",
+  "questions": [
+    {
+      "question_number": "2.1",
+      "options": [
+        "A. She was born in Germany in 1729.",
+        "B. In 1729, her parents were giving birth to her.",
+        "C. Catherine II born in Germany in 1729.",
+        "D. In Germany, 1729, Catherine II born."
+      ]
+    },
+    {
+      "question_number": "2.2",
+      "options": [
+        "A. When she was being 15 years old",
+        "B. While she was being 15 years old",
+        "C. While she was 15 years old",
+        "D. When she was 15 years old"
+      ]
+    },
+    {
+      "question_number": "2.3",
+      "options": [
+        "A. Catherine was knowing that something had to be done.",
+        "B. Something had known to be done by Catherine.",
+        "C. Catherine knew that something had to be done.",
+        "D. Something were known to be done by Catherine."
+      ]
+    },
+    {
+      "question_number": "2.4",
+      "options": [
+        "A. which was now the famous Hermitage Museum",
+        "B. which is now the famous Hermitage Museum",
+        "C. that was being the famous Hermitage Museum",
+        "D. that is now the famous Hermitage Museum"
+      ]
+    },
+    {
+      "question_number": "2.5",
+      "options": [
+        "A. Unluckily, Catherine II died in 1796 at the age of 67",
+        "B. Luckily, Catherine II died in 1796 at the age of 67",
+        "C. Unluckily, Catherine II was dying in 1796 at the age of 67",
+        "D. Fortunately, Catherine II was dying in 1796 at the age of 67"
+      ]
+    }
+  ]
+},
+{
+  "id": "DE_01_VD_03",
+  "type": "reading_comprehension",
+  "passage": "How do children learn about wildlife? And is what they learn the sort of thing they should be learning? It is my belief that children should not just be acquiring knowledge of animals but also developing attitudes and feelings towards them based on exposure to the real lives of animals in their natural habitats. But is this happening? Some research in this area indicates that it is not. Learning about animals in school is often completely disconnected from the real lives of real animals, with the result that children often end up with little or no understanding or lasting knowledge of them. They learn factual information about animals, aimed at enabling them to identify them and have various abstract ideas about them, but that is the extent of their learning. Children’s storybooks tend to personify animals as characters rather than teach about them. For direct contact with wild and international animals, the only opportunity most children have is visiting a zoo. The educational benefit of this for children is often given as the main reason for doing it but research has shown that zoo visits seldom add to children’s knowledge of animals - the animals are simply like exhibits in a museum that the children look at without engaging with them as living creatures. Research has also been done into the attitudes of children towards animals. It shows that in general terms, children form strong attachments to individual animals, usually their pets, but do not have strong feelings for animals in general. This attitude is the norm regardless of the amount or kind of learning about animals they have at school. However, those children who watch television wildlife programmes show an interest in and affection for wildlife in its natural environment, and their regard for animals in general is higher.",
+  "questions": [
+    {
+      "question_number": "3.1",
+      "question_text": "What could be the best title for the passage?",
+      "options": [
+        "A. Zoos: The Best Opportunity to Learn About Animals",
+        "B. Methods of Learning About Animals at School",
+        "C. Learning About Animals at School",
+        "D. Research on Learning About Animals"
+      ]
+    },
+    {
+      "question_number": "3.2",
+      "question_text": "The word benefit in paragraph 3, is OPPOSITE in meaning to ______.",
+      "options": [
+        "A. detriment",
+        "B. advantage",
+        "C. boring",
+        "D. assistance"
+      ]
+    },
+    {
+      "question_number": "3.3",
+      "question_text": "As stated in paragraph 2, children’s learning about animals at school…….",
+      "options": [
+        "A. has the wrong emphasis",
+        "B. is often inaccurate",
+        "C. will be harmful",
+        "D. is taught by teachers"
+      ]
+    },
+    {
+      "question_number": "3.4",
+      "question_text": "The word them in paragraph 2 refers to _______.",
+      "options": [
+        "A. ideas",
+        "B. children’s storybooks",
+        "C. children",
+        "D. animals"
+      ]
+    },
+    {
+      "question_number": "3.5",
+      "question_text": "Which of the following is NOT TRUE according to the passage?",
+      "options": [
+        "A. Children’s storybooks give factual information about animals.",
+        "B. The writer raises the issue of the outcome of what children learn about animals.",
+        "C. Learning about animals in their natural habitats teaches children more about animals than other methods.",
+        "D. Zoo visits have less educational benefit than they are believed to have."
+      ]
+    },
+    {
+      "question_number": "3.6",
+      "question_text": "It can be inferred from paragraph 4 that children’s attitudes to animals _______.",
+      "options": [
+        "A. depend on whether or not they have pets",
+        "B. differ from what adults might expect them to be",
+        "C. based on how much they know about the animals",
+        "D. are not affected by what they learn about them at school"
+      ]
+    },
+    {
+      "question_number": "3.7",
+      "question_text": "The word regard in paragraph 4 is closest in meaning to _______.",
+      "options": [
+        "A. opinion",
+        "B. respect",
+        "C. attitude",
+        "D. sympathy"
+      ]
+    }
+  ]
+}
+,{
+  "id": "DE_01_VD_04",
+  "type": "reading_comprehension_alignment",
+  "passage": "The Importance of Environmental Conservation In today's rapidly changing world, the importance of environmental conservation cannot be overstated. Our planet's ecosystems, which have evolved over millions of years, are now facing unprecedented threats from human activities. Deforestation, pollution, climate change, and the loss of biodiversity are just a few of the critical issues that need urgent attention.\nForests, often referred to as the lungs of the Earth, play a crucial role in absorbing carbon dioxide and producing oxygen. They also provide habitat for countless species of wildlife. However, extensive logging and land conversion for agriculture are leading to deforestation at an alarming rate. This not only contributes to climate change but also endangers species that depend on these forests for survival.\ Pollution, another significant environmental challenge, affects air, water, and soil quality. Industrial activities, vehicular emissions, and improper waste disposal are major contributors to environmental degradation. Pollutants can harm human health, disrupt ecosystems, and threaten the survival of many species.\nClimate change, driven by greenhouse gas emissions, is altering weather patterns, melting ice caps, and raising sea levels. These changes impact agriculture, water resources, and natural habitats, posing a threat to both human societies and wildlife.\nAddressing these environmental issues requires global cooperation and individual action. Emphasizing sustainable practices, reducing waste, conserving energy, and protecting natural habitats are essential steps towards a healthier planet. By prioritizing environmental conservation, we can work towards a more balanced and resilient ecosystem for future generations.",
+  "questions": [
+    {
+      "question_number": "4.1",
+      "question_text": "Which of the following best summarizes paragraph 1?",
+      "options": [
+        "A. The natural balance of the planet has remained unchanged over millions of years, but recent human activities are now posing significant threats to it.",
+        "B. Human activities such as deforestation, pollution, climate change, and loss of biodiversity are rapidly threatening the stability of ecosystems that have evolved over millions of years.",
+        "C. Efforts to conserve the environment have led to significant reductions in pollution and climate change impacts, demonstrating the success of global conservation initiatives.",
+        "D. Forests are the primary focus of environmental conservation efforts, as they provide the majority of the Earth's oxygen and habitat for wildlife."
+      ]
+    },
+    {
+      "question_number": "4.2",
+      "question_text": "To which of the following is the sentence \"Forests, often referred to as the lungs of the Earth, play a crucial role in absorbing carbon dioxide and producing oxygen\" in paragraph 2 is closest in meaning?",
+      "options": [
+        "A. The negative effects of industrial pollution on air and water quality.",
+        "B. The impact of deforestation on climate change and wildlife habitats.",
+        "C. The significance of protecting natural habitats for future generations.",
+        "D. The need for global cooperation in addressing climate change."
+      ]
+    },
+    {
+      "question_number": "4.3",
+      "question_text": "Which of the following is closest in meaning to the sentence \"Industrial activities, vehicular emissions, and improper waste disposal are major contributors to environmental degradation\"?",
+      "options": [
+        "A. Industrial activities and vehicular emissions are beneficial for the environment, while waste disposal needs improvement.",
+        "B. Industrial activities and vehicular emissions are minor factors in environmental protection, but waste disposal is critical.",
+        "C. Major sources of environmental harm include industrial activities, vehicle emissions, and improper waste management.",
+        "D. Environmental degradation is primarily caused by natural processes rather than human activities like industrial work and vehicle use."
+      ]
+    },
+    {
+      "question_number": "4.4",
+      "question_text": "Which of the following best describes the impact of climate change as mentioned in the sentence \"Climate change, driven by greenhouse gas emissions, is altering weather patterns, melting ice caps, and raising sea levels\"?",
+      "options": [
+        "A. Climate change is causing a decrease in greenhouse gas emissions and improving weather stability.",
+        "B. Greenhouse gas emissions are leading to changes in weather patterns, ice cap melting, and rising sea levels.",
+        "C. Climate change is solely affecting ocean temperatures without influencing weather patterns or ice caps.",
+        "D. The primary effect of climate change is the reduction of sea levels and stabilization of ice caps."
+      ]
+    },
+    {
+      "question_number": "4.5",
+      "question_text": "Which of the following best summarizes paragraph 2?",
+      "options": [
+        "A. The destruction of forests through logging and land conversion significantly impacts wildlife and contributes to climate change.",
+        "B. Forests are mostly unaffected by human activities and continue to thrive despite logging and land conversion.",
+        "C. Forests provide minimal benefit to wildlife and are less important for carbon dioxide absorption and oxygen production.",
+        "D. The primary role of forests is to reduce pollution and improve air quality by minimizing industrial activities."
+      ]
+    }
+  ]
+}
+  ]
+};
+
+const MISTAKE_BANK_KEY = "exam_mistakes_v1";
+function getMistakes(){try{return JSON.parse(localStorage.getItem(MISTAKE_BANK_KEY)||"[]")}catch{return[]}}
+function saveMistake(qid){const m=getMistakes();if(!m.includes(qid)){m.push(qid);try{localStorage.setItem(MISTAKE_BANK_KEY,JSON.stringify(m))}catch{}}}
+function clearMistakes(){try{localStorage.removeItem(MISTAKE_BANK_KEY);render();}catch{}}
+
+// --- ENGINE XỬ LÝ LOGIC TẠO ĐỀ ---
+const ENGINE = {
+  filter(type, level){
+    return DB.questions.filter(q=>{
+      if(q.is_passage) return false;
+      if(type!=="all" && q.type!==type) return false;
+      if(level!=="all" && q.level!==level) return false;
+      return true;
+    });
+  },
+  shuffle(arr){
+    const a=[...arr];
+    for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}
+    return a;
+  },
+  buildExam(config){
+    let exam=[];
+    const usedGroups=new Set();
+    const typeList = config.type==="all" 
+      ? ["ngu-phap","tu-vung","phat-am","tim-loi-sai","doc-hieu","duc-lo"] 
+      : [config.type];
+
+    typeList.forEach(t=>{
+      if(t==="doc-hieu"){
+        const groups=[...new Set(DB.questions.filter(q=>q.type==="doc-hieu"&&q.is_passage).map(q=>q.group_id))];
+        const shuffledG=this.shuffle(groups);
+        shuffledG.slice(0, config.docHieuGroups || 1).forEach(gid=>{
+          if(!usedGroups.has(gid)){
+            usedGroups.add(gid);
+            const passage=DB.questions.find(q=>q.group_id===gid&&q.is_passage);
+            const qs=DB.questions.filter(q=>q.group_id===gid&&!q.is_passage);
+            if(passage) exam.push({...passage, _examType:"doc-hieu-passage"});
+            qs.forEach(q=>exam.push({...q,_examType:"doc-hieu-q"}));
+          }
+        });
+      } else if(t==="duc-lo"){
+        const groups=[...new Set(DB.questions.filter(q=>q.type==="duc-lo"&&q.is_passage).map(q=>q.group_id))];
+        const shuffledG=this.shuffle(groups);
+        shuffledG.slice(0,1).forEach(gid=>{
+          if(!usedGroups.has(gid)){
+            usedGroups.add(gid);
+            const passage=DB.questions.find(q=>q.group_id===gid&&q.is_passage);
+            const qs=DB.questions.filter(q=>q.group_id===gid&&!q.is_passage);
+            if(passage) exam.push({...passage,_examType:"duc-lo-passage"});
+            qs.forEach(q=>exam.push({...q,_examType:"duc-lo-q"}));
+          }
+        });
+      } else {
+        const pool=this.shuffle(this.filter(t, config.level));
+        pool.slice(0, config.countPerType).forEach(q=>exam.push({...q,_examType:t}));
+      }
+    });
+    return exam;
+  }
+};
+
+let state={
+  view:"config",
+  exam:[],
+  answers:{},
+  pinned:new Set(),
+  config:{type:"all",level:"all",countPerType:2,docHieuGroups:1,timer:15},
+  timeLeft:0,
+  timerInterval:null,
+  currentQ:0
+};
+
+function render(){
+  const app=document.getElementById("app");
+  if(state.view==="config") app.innerHTML=renderConfig();
+  else if(state.view==="exam") app.innerHTML=renderExam();
+  else if(state.view==="result") app.innerHTML=renderResult();
+  attachEvents();
+}
+
+function renderConfig(){
+  const mistakes=getMistakes();
+  return `
+<div style="max-width:800px; margin: 0 auto;">
+  <div class="card" style="margin-bottom:1.5rem">
+    <h3 style="font-size:16px; margin-bottom:12px;"><i class="ti ti-settings"></i> Cấu hình chế độ bốc đề</h3>
+    <p style="font-size:13px; color:var(--color-text-sub); margin-bottom:1.5rem">Hệ thống thuật toán sẽ tự động chọn lọc câu ngẫu nhiên từ kho dữ liệu JSON dựa trên bộ lọc của bạn.</p>
+    
+    <div style="margin-bottom:1.25rem">
+      <p style="font-size:12px; color:var(--color-text-sub); margin-bottom:8px; font-weight:600">DẠNG BÀI LUYỆN TẬP</p>
+      <div class="grid-2">
+        ${[["all","Tất cả các dạng phối hợp"],["ngu-phap","Ngữ pháp chuyên đề"],["tu-vung","Từ vựng & Collocations"],["phat-am","Phát âm & Trọng âm"],["tim-loi-sai","Nhận diện Tìm lỗi sai"],["doc-hieu","Đọc hiểu văn bản (Reading)"],["duc-lo","Điền từ vào đoạn văn (Cloze test)"]].map(([v,l])=>`
+          <button class="opt${state.config.type===v?" selected":""}" data-cfg="type" data-val="${v}">${l}</button>
+        `).join("")}
+      </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:1rem; padding-top:10px; border-top:1px solid var(--color-border)">
+      <div>
+        <p style="font-size:12px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600">ĐỘ KHÓ ĐỀ BÀI</p>
+        <select id="cfg-level" style="width:100%">
+          <option value="all"${state.config.level==="all"?" selected":""}>Tất cả cấp độ</option>
+          <option value="easy"${state.config.level==="easy"?" selected":""}>Cơ bản (Easy)</option>
+          <option value="medium"${state.config.level==="medium"?" selected":""}>Thông hiểu (Medium)</option>
+          <option value="hard"${state.config.level==="hard"?" selected":""}>Vận dụng cao (Hard)</option>
+        </select>
+      </div>
+      <div>
+        <p style="font-size:12px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600">SỐ CÂU / MỖI DẠNG ĐƠN</p>
+        <input type="number" id="cfg-count" min="1" max="10" value="${state.config.countPerType}" style="width:100%">
+      </div>
+      <div>
+        <p style="font-size:12px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600">THỜI GIAN LÀM (PHÚT)</p>
+        <input type="number" id="cfg-timer" min="1" max="120" value="${state.config.timer}" style="width:100%">
+      </div>
+    </div>
+  </div>
+
+  <div style="display:flex; gap:12px; flex-wrap:wrap">
+    <button class="btn btn-primary" id="btn-start" style="padding: 12px 24px;"><i class="ti ti-arrows-shuffle"></i> Phát động Tạo đề ngẫu nhiên</button>
+    ${mistakes.length>0 ? `
+      <button class="btn" id="btn-mistakes" style="border-color:#f59e0b; color:#b45309; background:#fffbeb;"><i class="ti ti-history"></i> Ôn tập câu làm sai cũ (${mistakes.length})</button>
+      <button class="btn" id="btn-clear-mistakes" style="color:#ef4444;"><i class="ti ti-trash"></i> Xóa lịch sử sai</button>
+    ` : ""}
+  </div>
+</div>`;
+}
+
+function renderExam(){
+  const nonPassage=state.exam.filter(q=>!q.is_passage);
+  const timerColor=state.timeLeft<=60?"danger":state.timeLeft<=180?"warning":"";
+  const mm=String(Math.floor(state.timeLeft/60)).padStart(2,"0");
+  const ss=String(state.timeLeft%60).padStart(2,"0");
+
+  const sidebarNums=nonPassage.map((q,i)=>{
+    let cls="sidebar-num";
+    if(state.pinned.has(q.id)) cls+=" pinned-s";
+    else if(state.answers[q.id]!==undefined) cls+=" answered";
+    if(i===state.currentQ) cls+=" current";
+    return `<div class="${cls}" data-qjump="${i}">C${i+1}</div>`;
+  }).join("");
+
+  let questionsHtml="";
+  let qCounter=0;
+
+  // Lắp ghép giao diện tối ưu cho từng cụm dạng đề bài
+  for(let i=0; i<state.exam.length; i++){
+    const item=state.exam[i];
+    if(item._examType==="doc-hieu-passage"){
+      questionsHtml+=`<div class="split-container">
+        <div class="split-left passage-box">
+          <p style="font-size:11px;color:var(--color-text-sub);margin-bottom:6px;font-weight:600;text-transform:uppercase;"><i class="ti ti-file-text"></i> READING PASSAGE</p>
+          <div style="margin-top:6px">${item.text}</div>
+        </div>
+        <div class="split-right">`;
+      let j=i+1;
+      while(j<state.exam.length && state.exam[j].group_id===item.group_id && !state.exam[j].is_passage){
+        qCounter++;
+        questionsHtml+=renderMCQ(state.exam[j], qCounter);
+        j++;
+      }
+      questionsHtml+=`</div></div>`;
+      i=j-1;
+    } else if(item._examType==="duc-lo-passage"){
+      questionsHtml+=renderDucLo(item, state.exam, i);
+      let j=i+1;
+      while(j<state.exam.length && state.exam[j].group_id===item.group_id) j++;
+      qCounter += (j - (i + 1));
+      i=j-1;
+    } else if(!item.is_passage){
+      qCounter++;
+      questionsHtml+=renderMCQ(item, qCounter);
+    }
+  }
+
+  return `
+<div class="exam-layout">
+  <div class="main-content">
+    <div style="display:flex;align-items:center;gap:1.5rem;margin-bottom:1.5rem; background:#fff; padding:12px; border-radius:var(--border-radius-md); border:1px solid var(--color-border)">
+      <span class="timer ${timerColor}"><i class="ti ti-alarm"></i> ${mm}:${ss}</span>
+      <span style="font-size:14px;color:var(--color-text-sub); font-weight:500;"> Tiến độ: ${Object.keys(state.answers).length}/${nonPassage.length} câu câu hoàn thành</span>
+      <button class="btn btn-danger" id="btn-submit" style="margin-left:auto"><i class="ti ti-send"></i> Nộp Bài / Kết thúc</button>
+    </div>
+    ${questionsHtml}
+  </div>
+  
+  <div class="sidebar">
+    <div class="card" style="padding:1rem">
+      <p style="font-size:11px;font-weight:600;color:var(--color-text-sub);margin-bottom:12px;text-transform:uppercase">Điều hướng nhanh</p>
+      <div class="sidebar-grid">${sidebarNums}</div>
+      <div style="display:flex;flex-direction:column;gap:6px;font-size:12px;color:var(--color-text-sub);border-top:1px solid var(--color-border);padding-top:10px">
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:#e0f2fe;border:1px solid #7dd3fc"></div>Đã tích đáp án</div>
+        <div style="display:flex;align-items:center;gap:6px"><div style="width:12px;height:12px;border-radius:3px;background:#fef3c7;border:1px solid #fcd34d"></div>Câu đánh dấu ghim</div>
+      </div>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderMCQ(q, num){
+  const sel=state.answers[q.id];
+  const pinned=state.pinned.has(q.id);
+  return `<div class="q-card${pinned?" pinned":""}" id="qcard-${q.id}">
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+      <span class="q-num">Câu số ${num}</span>
+      ${getLevelBadge(q.level)}
+      ${getTypeBadge(q.type)}
+      <button class="pin-btn${pinned?" active":""}" data-pin="${q.id}" style="margin-left:auto"><i class="ti ti-bookmark"></i> ${pinned?"Đã ghim":"Ghim câu"}</button>
+    </div>
+    <p class="q-text">${q.question}</p>
+    <div class="options-container">
+      ${q.options.map((o,i)=>`
+        <button class="opt${sel===i?" selected":""}" data-ans="${q.id}" data-idx="${i}">
+          <strong>${String.fromCharCode(65+i)}.</strong> ${o}
+        </button>
+      `).join("")}
+    </div>
+  </div>`;
+}
+
+function renderDucLo(passage, exam, startIdx){
+  const qs=exam.filter(q=>q.group_id===passage.group_id&&!q.is_passage);
+  let text=passage.text;
+  
+  qs.forEach((q,i)=>{
+    const sel=state.answers[q.id];
+    // Tạo cấu trúc select trực quan ngay trong đoạn văn bản đục lỗ
+    const opts=q.options.map((o,idx)=>`<option value="${idx}"${sel===idx?" selected":""}>${String.fromCharCode(65+idx)}. ${o}</option>`).join("");
+    const dropdown=`<select data-duc="${q.id}" style="margin:0 4px; padding:2px 6px; border-color:#0284c7; font-weight:600;"><option value="">(${i+1}) Chọn...</option>${opts}</select>`;
+    text=text.replace(`(${i+1})_____`, dropdown);
+  });
+
+  return `<div class="card" style="margin-bottom:1.5rem">
+    <p style="font-size:11px;font-weight:600;color:var(--color-text-sub);margin-bottom:8px;text-transform:uppercase;"><i class="ti ti-edit"></i> CLOZE TEST (Điền từ vào đoạn văn)</p>
+    <div style="font-size:15px;line-height:2.2;text-align:justify; background:var(--color-bg-main); padding:1.25rem; border-radius:var(--border-radius-md)">${text}</div>
+  </div>`;
+}
+
+function renderResult(){
+  const nonPassage=state.exam.filter(q=>!q.is_passage);
+  let correctCount=0;
+  
+  nonPassage.forEach(q=>{
+    if(state.answers[q.id]===q.answer) correctCount++;
+  });
+
+  const pct=nonPassage.length > 0 ? Math.round((correctCount/nonPassage.length)*100) : 0;
+  let rank="Cần cố gắng thêm"; let badgeCls="badge-red";
+  if(pct>=85){ rank="Xuất Sắc"; badgeCls="badge-teal"; }
+  else if(pct>=70){ rank="Khá Tốt"; badgeCls="badge-blue"; }
+  else if(pct>=50){ rank="Trung Bình"; badgeCls="badge-amber"; }
+
+  let reviewHtml="";
+  let qc=0;
+
+  nonPassage.forEach(q=>{
+    qc++;
+    const userAns=state.answers[q.id];
+    const isCorrect=(userAns===q.answer);
+    
+    reviewHtml+=`<div class="q-card" style="border-left: 4px solid ${isCorrect?"#10b981":"#ef4444"}">
+      <div style="display:flex;gap:8px;align-items:center;margin-bottom:8px">
+        <span class="q-num">Câu hỏi ${qc}</span>
+        <span class="badge ${isCorrect?"badge-teal":"badge-red"}">${isCorrect?"<i class='ti ti-check'></i> ĐÚNG":"<i class='ti ti-x'></i> SAI"}</span>
+        ${getTypeBadge(q.type)}
+      </div>
+      <p class="q-text" style="font-size:14px; margin-bottom:10px;">${q.question}</p>
+      
+      <div style="font-size:13px; margin-bottom:8px">
+        ${userAns!==undefined ? `<div><span style="color:var(--color-text-sub)">Lựa chọn của bạn:</span> <strong style="color:${isCorrect?"#0f766e":"#b91c1c"}">${String.fromCharCode(65+userAns)}. ${q.options[userAns]}</strong></div>` : "<div style='color:#b91c1c'>Bạn chưa trả lời câu này!</div>"}
+        <div><span style="color:var(--color-text-sub)">Đáp án chuẩn xác:</span> <strong style="color:#0f766e">${String.fromCharCode(65+q.answer)}. ${q.options[q.answer]}</strong></div>
+      </div>
+      
+      <div style="margin-top:10px; padding-top:8px; border-top:1px dashed var(--color-border); font-size:13px; color:var(--color-text-sub); background:#f8fafc; padding:8px; border-radius:4px;">
+        <strong><i class="ti ti-bulb"></i> Phân tích giải thích:</strong> ${q.explanation || "Chưa cập nhật dữ liệu giải thích chi tiết."}
+      </div>
+    </div>`;
+  });
+
+  return `
+<div style="max-width:800px; margin: 0 auto">
+  <div class="card" style="margin-bottom:1.5rem;display:flex;gap:2rem;align-items:center;flex-wrap:wrap">
+    <div>
+      <p style="font-size:14px;color:var(--color-text-sub);font-weight:500;">KẾT QUẢ ĐẠT ĐƯỢC</p>
+      <p style="font-size:46px;font-weight:600;color:var(--color-text-main);line-height:1">${correctCount}<span style="font-size:22px;color:var(--color-text-muted)">/${nonPassage.length}</span></p>
+    </div>
+    <div>
+      <p style="font-size:13px;color:var(--color-text-sub)">Tỷ lệ chính xác</p>
+      <p style="font-size:24px;font-weight:600;color:var(--color-text-main)">${pct}%</p>
+    </div>
+    <div>
+      <span class="badge ${badgeCls}" style="font-size:14px;padding:6px 16px; border-radius:6px">${rank}</span>
+    </div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <button class="btn" id="btn-retry"><i class="ti ti-refresh"></i> Luyện lại đề này</button>
+      <button class="btn btn-primary" id="btn-new"><i class="ti ti-home"></i> Cấu hình đề mới</button>
+    </div>
+  </div>
+
+  <h3 style="font-size:15px;font-weight:600;color:var(--color-text-main);margin-bottom:12px; text-transform:uppercase"><i class="ti ti-list-check"></i> Xem lại chi tiết bài làm</h3>
+  ${reviewHtml}
+</div>`;
+}
+
+function getLevelBadge(l){
+  const map={easy:["badge-teal","Dễ"],medium:["badge-blue","Trung Bình"],hard:["badge-red","Vận Dụng Cao"]};
+  const [cls,label]=map[l]||["badge-blue",l];
+  return `<span class="badge ${cls}">${label}</span>`;
+}
+function getTypeBadge(t){
+  const map={"ngu-phap":"Ngữ pháp","tu-vung":"Từ vựng","phat-am":"Phát âm","tim-loi-sai":"Lỗi sai","doc-hieu":"Đọc hiểu","duc-lo":"Đục lỗ"};
+  return `<span class="badge badge-purple">${map[t]||t}</span>`;
+}
+
+function startTimer(){
+  clearInterval(state.timerInterval);
+  state.timerInterval=setInterval(()=>{
+    state.timeLeft--;
+    if(state.timeLeft<=0){ submitExam(); }
+    else{
+      const el=document.querySelector(".timer");
+      if(el){
+        const mm=String(Math.floor(state.timeLeft/60)).padStart(2,"0");
+        const ss=String(state.timeLeft%60).padStart(2,"0");
+        el.innerHTML=`<i class="ti ti-alarm"></i> ${mm}:${ss}`;
+        el.className="timer"+(state.timeLeft<=60?" danger":state.timeLeft<=180?" warning":"");
+      }
+    }
+  },1000);
+}
+
+function submitExam(){
+  clearInterval(state.timerInterval);
+  const nonPassage=state.exam.filter(q=>!q.is_passage);
+  nonPassage.forEach(q=>{
+    const ans=state.answers[q.id];
+    if(ans!==q.answer) saveMistake(q.id);
+  });
+  state.view="result";
+  render();
+  window.scrollTo({top:0, behavior:'smooth'});
+}
+
+function attachEvents(){
+  document.querySelectorAll("[data-cfg]").forEach(el=>{
+    el.onclick=()=>{ state.config[el.dataset.cfg]=el.dataset.val; render(); };
+  });
+  
+  const lvlEl=document.getElementById("cfg-level");
+  if(lvlEl) lvlEl.onchange=e=>{ state.config.level=e.target.value; };
+  const cntEl=document.getElementById("cfg-count");
+  if(cntEl) cntEl.onchange=e=>{ state.config.countPerType=parseInt(e.target.value)||2; };
+  const tmrEl=document.getElementById("cfg-timer");
+  if(tmrEl) tmrEl.onchange=e=>{ state.config.timer=parseInt(e.target.value)||15; };
+
+  const startBtn=document.getElementById("btn-start");
+  if(startBtn) startBtn.onclick=()=>{
+    state.exam=ENGINE.buildExam(state.config);
+    if(state.exam.length === 0){ alert("Không có câu hỏi nào khớp với bộ lọc cấu hình hiện tại! Vui lòng mở rộng bộ lọc."); return; }
+    state.answers={}; state.pinned=new Set(); state.currentQ=0;
+    state.timeLeft=state.config.timer*60;
+    state.view="exam";
+    render();
+    startTimer();
+  };
+
+  const mistakeBtn=document.getElementById("btn-mistakes");
+  if(mistakeBtn) mistakeBtn.onclick=()=>{
+    const ids=getMistakes();
+    state.exam=DB.questions.filter(q=>ids.includes(q.id)&&!q.is_passage).map(q=>({...q,_examType:q.type}));
+    state.answers={}; state.pinned=new Set(); state.currentQ=0;
+    state.timeLeft=state.config.timer*60;
+    state.view="exam";
+    render();
+    startTimer();
+  };
+
+  const clearMBtn = document.getElementById("btn-clear-mistakes");
+  if(clearMBtn) clearMBtn.onclick=()=>{ if(confirm("Bạn có chắc muốn xóa lịch sử các câu làm sai không?")) clearMistakes(); };
+
+  document.querySelectorAll("[data-ans]").forEach(el=>{
+    el.onclick=()=>{
+      const qid = el.dataset.ans;
+      state.answers[qid]=parseInt(el.dataset.idx);
+      const nonPassage=state.exam.filter(q=>!q.is_passage);
+      state.currentQ=nonPassage.findIndex(q=>q.id===qid);
+      render();
+    };
+  });
+
+  document.querySelectorAll("[data-duc]").forEach(el=>{
+    el.onchange=()=>{
+      if(el.value!=="") {
+        state.answers[el.dataset.duc]=parseInt(el.value);
+        // Tự động cập nhật trạng thái làm bài ở sidebar điều hướng
+        const nonPassage=state.exam.filter(q=>!q.is_passage);
+        state.currentQ=nonPassage.findIndex(q=>q.id===el.dataset.duc);
+      } else {
+        delete state.answers[el.dataset.duc];
+      }
+    };
+  });
+
+  document.querySelectorAll("[data-pin]").forEach(el=>{
+    el.onclick=()=>{
+      const id=el.dataset.pin;
+      if(state.pinned.has(id)) state.pinned.delete(id);
+      else state.pinned.add(id);
+      render();
+    };
+  });
+
+  document.querySelectorAll("[data-qjump]").forEach(el=>{
+    el.onclick=()=>{
+      const idx=parseInt(el.dataset.qjump);
+      state.currentQ=idx;
+      const nonP=state.exam.filter(q=>!q.is_passage);
+      const targetId="qcard-"+nonP[idx]?.id;
+      const target=document.getElementById(targetId);
+      if(target) target.scrollIntoView({behavior:"smooth",block:"center"});
+      render();
+    };
+  });
+
+  const submitBtn=document.getElementById("btn-submit");
+  if(submitBtn) submitBtn.onclick=()=>{ if(confirm("Bạn có chắc chắn muốn nộp bài chấm điểm ngay không?")) submitExam(); };
+  
+  const retryBtn=document.getElementById("btn-retry");
+  if(retryBtn) retryBtn.onclick=()=>{ state.answers={}; state.pinned=new Set(); state.currentQ=0; state.timeLeft=state.config.timer*60; state.view="exam"; render(); startTimer(); };
+  
+  const newBtn=document.getElementById("btn-new");
+  if(newBtn) newBtn.onclick=()=>{ clearInterval(state.timerInterval); state.view="config"; render(); };
+}
+
+render();
+</script>
+</body>
+</html>
